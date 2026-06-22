@@ -2004,17 +2004,27 @@ const CORS_PROXIES = [
   url => 'https://corsproxy.io/?url=' + encodeURIComponent(url),
 ];
 
-// AbortSignal.timeout(ms) — стандартный способ ограничить fetch по
-// времени, но некоторые прокси внутри себя используют postMessage
-// между фреймами/воркерами, а готовый объект AbortSignal не проходит
-// структурное клонирование — это валит fetch с DataCloneError ещё до
-// того, как запрос реально ушёл. Собираем таймаут вручную через
-// AbortController + setTimeout, что даёт тот же результат, но не
-// передаёт сам AbortSignal куда-либо за пределы fetch.
+// ВАЖНО: здесь сознательно НЕ используется AbortController/AbortSignal.
+// Раньше таймаут собирался через controller.signal, и это казалось
+// безопасным (signal никуда явно не пересылался) — но ошибка
+// "AbortSignal object could not be cloned" всё равно происходила,
+// причём одинаково для совершенно разных доменов, включая прямой
+// запрос к googleapis.com без какого-либо прокси. Это означает, что
+// сам signal перехватывается чем-то ВНЕ нашего кода — скорее всего
+// браузерным расширением (антивирус/блокировщик/переводчик), которое
+// подменяет window.fetch и пытается переслать перехваченные параметры
+// запроса через postMessage. AbortSignal физически не клонируется
+// структурным алгоритмом клонирования, поэтому такая пересылка валит
+// fetch ещё до сети — независимо от того, что мы передаём.
+// Решение: вообще не создавать AbortSignal. Таймаут реализован через
+// Promise.race — если fetch не успел за отведённое время, считаем
+// его неудачным и идём к следующему прокси, а сам зависший запрос
+// браузер сам оборвёт по истечении своего внутреннего таймаута.
 function fetchWithTimeout(url, ms) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), ms || 8000);
-  return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('Превышен таймаут запроса (' + (ms || 8000) + 'мс)')), ms || 8000);
+  });
+  return Promise.race([fetch(url), timeoutPromise]);
 }
 
 // Пробует прокси по очереди, пока один не вернёт успешный ответ.
