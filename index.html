@@ -202,8 +202,66 @@ body::before{
 /* ============================================================
    PAGES (SPA routing)
 ============================================================ */
-.page{display:none;min-height:calc(100vh - 64px);padding-top:64px}
+.page{
+  display:none;
+  min-height:calc(100vh - 64px);
+  padding-top:64px;
+  position:relative;
+  overflow:hidden;
+}
 .page.active{display:block}
+
+/* ============================================================
+   ЕДИНЫЙ ФОН ДЛЯ ВСЕХ СТРАНИЦ (как на визитке) + сканирующая полоса
+============================================================ */
+.page::before{
+  content:'';
+  position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 60% 60% at 30% 50%, rgba(245,197,24,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 80% at 70% 50%, rgba(0,212,255,0.03) 0%, transparent 70%);
+  pointer-events:none;
+  z-index:0;
+}
+.page::after{
+  content:'';
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(245,197,24,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245,197,24,0.04) 1px, transparent 1px);
+  background-size:60px 60px;
+  animation:gridScroll 20s linear infinite;
+  pointer-events:none;
+  z-index:0;
+}
+@keyframes gridScroll{
+  0%{background-position:0 0}
+  100%{background-position:60px 60px}
+}
+/* Сканирующая полоса — узкая светящаяся линия, идущая сверху вниз
+   по всей высоте страницы, поверх сетки, но под контентом */
+.page__scanline{
+  position:absolute;
+  left:0;right:0;
+  height:120px;
+  background:linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(245,197,24,0.08) 45%,
+    rgba(245,197,24,0.18) 50%,
+    rgba(245,197,24,0.08) 55%,
+    transparent 100%
+  );
+  pointer-events:none;
+  z-index:1;
+  animation:pageScan 6s linear infinite;
+}
+@keyframes pageScan{
+  0%{top:-120px}
+  100%{top:100%}
+}
+/* Весь реальный контент страницы должен быть выше декоративного фона */
+.page > *{position:relative;z-index:2}
 
 /* ============================================================
    PAGE: ABOUT / VISUAL CARD
@@ -213,31 +271,6 @@ body::before{
   display:flex;align-items:center;justify-content:center;
   padding:2rem;
   position:relative;
-  overflow:hidden;
-}
-.about-hero::before{
-  content:'';
-  position:absolute;inset:0;
-  background:
-    radial-gradient(ellipse 60% 60% at 30% 50%, rgba(245,197,24,0.06) 0%, transparent 70%),
-    radial-gradient(ellipse 40% 80% at 70% 50%, rgba(0,212,255,0.03) 0%, transparent 70%);
-  pointer-events:none;
-}
-
-/* Animated grid background */
-.about-hero::after{
-  content:'';
-  position:absolute;inset:0;
-  background-image:
-    linear-gradient(rgba(245,197,24,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(245,197,24,0.04) 1px, transparent 1px);
-  background-size:60px 60px;
-  animation:gridScroll 20s linear infinite;
-  pointer-events:none;
-}
-@keyframes gridScroll{
-  0%{background-position:0 0}
-  100%{background-position:60px 60px}
 }
 
 .card{
@@ -334,6 +367,15 @@ body::before{
   letter-spacing:0.05em;
   line-height:1;
   margin-bottom:0.25rem;
+}
+/* Имя после позывного — Денис просил именно белым, без жёлтого
+   свечения, которое наследуется от родителя .card__callsign */
+.card__realname{
+  color:var(--white);
+  text-shadow:none;
+  font-size:0.55em;
+  font-weight:700;
+  vertical-align:middle;
 }
 .card__role{
   font-family:var(--font-mono);
@@ -432,16 +474,58 @@ body::before{
   color:var(--yellow);
   text-shadow:var(--glow);
 }
+.donate-card__body{
+  display:flex;
+  align-items:center;
+  gap:1.25rem;
+}
+.donate-card__art{
+  width:120px;
+  flex-shrink:0;
+  border-radius:8px;
+  box-shadow:0 6px 18px rgba(0,0,0,0.5), 0 0 0 1px rgba(245,197,24,0.15);
+}
+.donate-card__details{
+  flex:1;
+  min-width:0;
+}
 .donate-card__number{
   font-family:var(--font-mono);
-  font-size:1.25rem;
+  font-size:1.15rem;
   font-weight:700;
   color:var(--white);
-  text-align:center;
-  letter-spacing:0.08em;
-  padding:0.6rem 0;
+  text-align:left;
+  letter-spacing:0.06em;
+  padding:0;
+  margin-bottom:0.5rem;
   user-select:all; /* облегчает выделение и копирование номера карты */
   cursor:text;
+  word-break:break-word;
+}
+.donate-card__expiry{
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+}
+.donate-card__expiry-label{
+  font-family:var(--font-mono);
+  font-size:0.55rem;
+  color:var(--text-dim);
+  text-transform:uppercase;
+  letter-spacing:0.1em;
+}
+.donate-card__expiry-value{
+  font-family:var(--font-mono);
+  font-size:0.95rem;
+  font-weight:700;
+  color:var(--yellow);
+  letter-spacing:0.08em;
+  user-select:all;
+  cursor:text;
+}
+@media(max-width:480px){
+  .donate-card__art{width:90px}
+  .donate-card__number{font-size:0.95rem}
 }
 .donate-card__sub{
   font-family:var(--font-mono);
@@ -450,37 +534,48 @@ body::before{
   text-align:center;
   letter-spacing:0.1em;
   text-transform:uppercase;
+  margin-top:0.75rem;
 }
 
 /* Social links */
 .socials{
   display:grid;
-  grid-template-columns:repeat(auto-fill, minmax(120px,1fr));
-  gap:0.75rem;
+  grid-template-columns:repeat(6, 1fr);
+  gap:0.6rem;
 }
 .social-btn{
-  display:flex;align-items:center;gap:8px;
-  padding:10px 14px;
-  border:1px solid var(--border);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  padding:12px 6px;
+  border:1px solid transparent;
   border-radius:var(--radius);
   font-family:var(--font-display);
-  font-size:0.6rem;
+  font-size:0.55rem;
   font-weight:700;
-  letter-spacing:0.1em;
+  letter-spacing:0.05em;
   text-transform:uppercase;
-  color:var(--text-dim);
+  color:var(--white);
   transition:all var(--transition);
+  text-align:center;
 }
 .social-btn:hover{
-  border-color:var(--yellow);
-  color:var(--yellow);
-  background:rgba(245,197,24,0.06);
-  transform:translateY(-2px);
-  box-shadow:0 4px 20px rgba(245,197,24,0.15);
+  transform:translateY(-3px);
+  filter:brightness(1.15);
 }
 .social-btn svg,.social-btn .s-icon{
-  width:16px;height:16px;flex-shrink:0;
+  width:18px;height:18px;flex-shrink:0;
   fill:currentColor;
+}
+/* Брендовые цвета каждой площадки — фирменный фон + лёгкое свечение
+   в духе киберпанк-стиля сайта */
+.social-btn--youtube{background:#FF0000;box-shadow:0 0 14px rgba(255,0,0,0.25)}
+.social-btn--kick{background:#53FC18;color:#0a1a00;box-shadow:0 0 14px rgba(83,252,24,0.25)}
+.social-btn--twitch{background:#9146FF;box-shadow:0 0 14px rgba(145,70,255,0.3)}
+.social-btn--vk{background:#0077FF;box-shadow:0 0 14px rgba(0,119,255,0.3)}
+.social-btn--tiktok{background:#000000;border-color:#3a3a3a;box-shadow:0 0 14px rgba(255,255,255,0.08)}
+.social-btn--telegram{background:#26A5E4;box-shadow:0 0 14px rgba(38,165,228,0.3)}
+@media(max-width:480px){
+  .socials{grid-template-columns:repeat(3, 1fr)}
+  .social-btn{font-size:0.5rem;padding:10px 4px}
 }
 
 /* ============================================================
@@ -717,12 +812,32 @@ body::before{
 @keyframes skeletonShimmer{to{background-position-x:-200%}}
 
 /* ============================================================
-   MAP VIEWER MODAL — полная карта открывается на нашем сайте
+   MAP VIEWER MODAL — полная карта открывается на нашем сайте,
+   на весь экран (не маленькое окошко) — карты wzhub.gg сами
+   интерактивные и нуждаются в максимуме пространства
 ============================================================ */
 .map-viewer-modal{
   max-width:1100px;
   width:95%;
   padding:1.5rem;
+}
+.map-viewer-modal--fullscreen{
+  max-width:100vw;
+  width:100vw;
+  height:100vh;
+  max-height:100vh !important;
+  margin:0;
+  border-radius:0;
+  display:flex;
+  flex-direction:column;
+  padding:1.25rem;
+}
+/* Когда открыт fullscreen-просмотр карты, убираем внешний отступ
+   у затемнённого фона — иначе по краям остаются зазоры до края экрана */
+#map-viewer-modal{padding:0}
+.map-viewer-modal--fullscreen .map-viewer-frame-wrap{
+  flex:1;
+  aspect-ratio:unset; /* во весь экран высота важнее фиксированного соотношения сторон */
 }
 .map-viewer-frame-wrap{
   position:relative;
@@ -754,6 +869,77 @@ body::before{
   font-size:0.7rem;font-weight:900;
   letter-spacing:0.12em;text-transform:uppercase;
   border-radius:4px;
+}
+
+/* ============================================================
+   WEAPON DETAIL MODAL — разбор сборки оружия на нашем сайте
+============================================================ */
+.weapon-detail-modal{
+  max-width:560px;
+  width:95%;
+}
+.weapon-detail-hero{
+  display:flex;align-items:center;gap:1.25rem;
+  margin-bottom:1rem;
+}
+.weapon-detail-hero img{
+  width:120px;height:80px;
+  object-fit:contain;
+  background:var(--panel2);
+  border-radius:6px;
+  flex-shrink:0;
+}
+.weapon-detail-name{
+  font-family:var(--font-display);
+  font-size:1.3rem;font-weight:900;
+  color:var(--white);
+  margin-top:4px;
+}
+.weapon-detail-code{
+  font-family:var(--font-mono);
+  font-size:0.7rem;
+  color:var(--text-dim);
+  margin-top:4px;
+}
+.weapon-detail-code span{color:var(--yellow);letter-spacing:0.05em}
+.weapon-detail-desc{
+  font-size:0.9rem;
+  color:var(--text);
+  line-height:1.6;
+  border-left:2px solid var(--yellow-dim);
+  padding-left:1rem;
+  margin-bottom:1.25rem;
+}
+.weapon-detail-parts__title{
+  font-family:var(--font-display);
+  font-size:0.7rem;font-weight:700;
+  letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--yellow);
+  margin-bottom:0.75rem;
+}
+.weapon-detail-part{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:8px 12px;
+  background:var(--panel2);
+  border:1px solid var(--border);
+  border-radius:4px;
+  margin-bottom:6px;
+  font-size:0.85rem;
+}
+.weapon-detail-part__cat{
+  font-family:var(--font-mono);
+  font-size:0.6rem;
+  color:var(--text-dim);
+  text-transform:uppercase;
+  letter-spacing:0.1em;
+}
+.weapon-detail-part__name{color:var(--text);font-weight:600}
+.weapon-detail-loading{
+  text-align:center;
+  padding:2rem 1rem;
+  color:var(--text-dim);
+  font-family:var(--font-mono);
+  font-size:0.8rem;
 }
 
 /* ============================================================
@@ -1315,7 +1501,6 @@ body::before{
   .card__callsign{font-size:2.1rem}
   .card__avatar-ring{width:160px;height:160px}
   .stats{grid-template-columns:1fr}
-  .socials{grid-template-columns:repeat(2,1fr)}
   .page-header{padding:2.5rem 1rem 1.5rem}
   .page-header h1{font-size:1.4rem}
   .section-container,.videos-section,.settings-panel{padding:1rem}
@@ -1373,7 +1558,7 @@ body::before{
     transition-duration:0.001ms !important;
     scroll-behavior:auto !important;
   }
-  .about-hero::after,.card__avatar-ring::before,.card__radar,.glitch{
+  .page::after,.page__scanline,.card__avatar-ring::before,.card__radar,.glitch{
     animation:none !important;
   }
 }
@@ -1400,7 +1585,7 @@ body::before{
 @media print{
   body{background:#fff;color:#000}
   .nav,.edit-mode-bar,.modal-overlay,.corner-dec,#loading-screen,.footer{display:none !important}
-  .about-hero::before,.about-hero::after{display:none}
+  .about-hero::before,.page::before,.page::after,.page__scanline{display:none}
 }
 </style>
 </head>
@@ -1441,6 +1626,7 @@ body::before{
      PAGE: ABOUT (Визитка)
 ============================================================ -->
 <div class="page active" id="page-about">
+  <div class="page__scanline"></div>
   <div class="about-hero">
     <div class="card" id="card-main">
       <div class="card__avatar-wrap" id="avatar-section">
@@ -1456,8 +1642,8 @@ body::before{
       </div>
 
       <div class="card__info" id="info-section">
-        <div class="card__callsign glitch" id="callsign" data-editable>CASPER</div>
-        <div class="card__role" id="card-role" data-editable>// Call of Duty Guide Blogger //</div>
+        <div class="card__callsign glitch" id="callsign" data-editable>CASPER<span class="card__realname" id="card-realname" data-editable> ДЕНИС</span></div>
+        <div class="card__role" id="card-role" data-editable>Call of Duty Guide Blogger</div>
         <p class="card__desc" id="card-desc" data-editable>Call of Duty Гайды каждый день 🔥 Я "Casper" Денис 🤝 Полезный Guide Стример из 🇧🇾 Беларуси 😉</p>
 
         <div class="stats" id="stats-block">
@@ -1486,32 +1672,41 @@ body::before{
             <span class="donate-card__label">ДЛЯ БОГАТЫХ</span>
             <span class="donate-card__flag" title="Беларусь">🇧🇾</span>
           </div>
-          <div class="donate-card__number" id="donate-card-number" data-editable>9112 3801 6354 1917</div>
+          <div class="donate-card__body">
+            <img class="donate-card__art" src="data:image/png;base64,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" alt="Карта Беларусбанк">
+            <div class="donate-card__details">
+              <div class="donate-card__number" id="donate-card-number" data-editable>9112 3801 6354 1917</div>
+              <div class="donate-card__expiry">
+                <span class="donate-card__expiry-label">Действует до</span>
+                <span class="donate-card__expiry-value" id="donate-card-expiry" data-editable>02/30</span>
+              </div>
+            </div>
+          </div>
           <div class="donate-card__sub">Банковская карта · Беларусь</div>
         </div>
 
         <div class="socials" id="socials-grid">
-          <a class="social-btn" href="https://www.youtube.com/@WZ.Casper" target="_blank" id="link-youtube">
+          <a class="social-btn social-btn--youtube" href="https://www.youtube.com/@WZ.Casper" target="_blank" id="link-youtube">
             <svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 00-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 00.5 6.2 31.4 31.4 0 000 12a31.4 31.4 0 00.5 5.8A3 3 0 002.6 20c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 002.1-2.1A31.4 31.4 0 0024 12a31.4 31.4 0 00-.5-5.8zm-13.9 9.4V8.4l6.3 3.6-6.3 3.6z"/></svg>
             YouTube
           </a>
-          <a class="social-btn" href="https://kick.com/wz-casper" target="_blank" id="link-kick">
+          <a class="social-btn social-btn--kick" href="https://kick.com/wz-casper" target="_blank" id="link-kick">
             <svg viewBox="0 0 24 24"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm0 22C6.5 22 2 17.5 2 12S6.5 2 12 2s10 4.5 10 10-4.5 10-10 10zm-2-6.5V8.5l7 3.5-7 3.5z"/></svg>
             Kick
           </a>
-          <a class="social-btn" href="https://www.twitch.tv/wz_casper" target="_blank" id="link-twitch">
+          <a class="social-btn social-btn--twitch" href="https://www.twitch.tv/wz_casper" target="_blank" id="link-twitch">
             <svg viewBox="0 0 24 24"><path d="M11.6 6H10v4.5h1.6V6zm4.2 0h-1.6v4.5h1.6V6zM2.1 0L0 5.3V21h5.9v3h3.2l3-3h4.6L22 15.6V0H2.1zm18.2 14.7l-3.5 3.5h-5.7l-3 3v-3H3.7V1.7h16.6v13z"/></svg>
             Twitch
           </a>
-          <a class="social-btn" href="https://live.vkvideo.ru/wz_casper" target="_blank" id="link-vk">
+          <a class="social-btn social-btn--vk" href="https://live.vkvideo.ru/wz_casper" target="_blank" id="link-vk">
             <svg viewBox="0 0 24 24"><path d="M22 7.1c.1-.5 0-.8-.7-.8H19c-.6 0-.8.3-1 .7 0 0-1.1 2.7-2.6 4.5-.5.5-.7.6-1 .6-.1 0-.4-.1-.4-.7V7.1c0-.6-.2-.8-.7-.8h-3.6c-.4 0-.6.3-.6.6 0 .6.9.7 1 2.4v3.6c0 .8-.1.9-.4.9-.7 0-2.5-2.7-3.5-5.8-.2-.6-.4-.8-1-.8H3.7c-.7 0-.8.3-.8.7 0 .7.7 3.9 3.2 8.1 1.7 2.9 4 4.4 6.2 4.4 1.3 0 1.4-.3 1.4-.8v-1.8c0-.7.1-.8.7-.8.4 0 1 .2 2.6 1.7 1.7 1.7 2 2.5 3 2.5h2.2c.7 0 1-.3.8-1-.2-.6-.9-1.6-1.8-2.7-.5-.6-1.2-1.2-1.4-1.6-.4-.5-.3-.7 0-1.2 0 0 2.5-3.5 2.8-4.7z"/></svg>
             VK LIVE
           </a>
-          <a class="social-btn" href="https://www.tiktok.com/@wz.casper" target="_blank" id="link-tiktok">
+          <a class="social-btn social-btn--tiktok" href="https://www.tiktok.com/@wz.casper" target="_blank" id="link-tiktok">
             <svg viewBox="0 0 24 24"><path d="M19.6 3.3C18.7 2.3 18.2 1 18.2 0h-3.6v16.4c0 1.4-1.1 2.4-2.4 2.4a2.4 2.4 0 01-2.4-2.4 2.4 2.4 0 012.4-2.4c.3 0 .5 0 .7.1V10a5.8 5.8 0 00-.7 0 5.9 5.9 0 00-5.9 5.9 5.9 5.9 0 005.9 5.9 5.9 5.9 0 005.9-5.9V8.1A10 10 0 0023.9 10V6.5a6.3 6.3 0 01-4.3-3.2z"/></svg>
             TikTok
           </a>
-          <a class="social-btn" href="https://t.me/CLUB_WARZONE" target="_blank" id="link-tg">
+          <a class="social-btn social-btn--telegram" href="https://t.me/CLUB_WARZONE" target="_blank" id="link-tg">
             <svg viewBox="0 0 24 24"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm5.9 8.2l-2 9.5c-.1.6-.5.7-1 .5l-2.8-2-1.3 1.3c-.2.2-.4.3-.7.3l.2-3 5.1-4.6c.2-.2 0-.3-.3-.1L6.1 14.1l-2.8-.9c-.6-.2-.6-.6.1-.9l10.9-4.2c.6-.2 1.1.1.9.9l-.3.2z"/></svg>
             Telegram
           </a>
@@ -1525,15 +1720,12 @@ body::before{
      PAGE: META WEAPONS
 ============================================================ -->
 <div class="page" id="page-weapons">
+  <div class="page__scanline"></div>
   <div class="page-header">
-    <h1>// МЕТА ОРУЖИЕ //</h1>
+    <h1>🔫 МЕТА ОРУЖИЕ</h1>
     <p class="subtitle">Black Ops 7 · Warzone 2026 · Обновляется автоматически</p>
   </div>
   <div class="section-container">
-    <div class="yt-notice">
-      ⚡ Сборки и фото подгружаются с <strong>wzhub.gg</strong> — список проверяется
-      заново каждый час, чтобы мета всегда была актуальной.
-    </div>
     <div class="weapons-grid" id="weapons-grid">
       <!-- Weapons injected by JS -->
     </div>
@@ -1550,17 +1742,13 @@ body::before{
      PAGE: MAPS
 ============================================================ -->
 <div class="page" id="page-maps">
+  <div class="page__scanline"></div>
   <div class="page-header">
-    <h1>// ИНТЕРАКТИВНЫЕ КАРТЫ //</h1>
+    <h1>🌍 ИНТЕРАКТИВНЫЕ КАРТЫ</h1>
     <p class="subtitle">Warzone · Black Ops 7 · Season актуальный</p>
   </div>
 
   <div class="section-container">
-    <div class="yt-notice" id="maps-sync-notice">
-      ⚡ Карты подгружаются с <strong>wzhub.gg</strong> и обновляются автоматически — список и превью
-      проверяются заново каждый час.
-    </div>
-
     <div class="maps-grid" id="maps-grid">
       <!-- Карточки карт рендерятся через JS (initMapsLibrary) -->
     </div>
@@ -1575,7 +1763,7 @@ body::before{
      MAP VIEWER MODAL — открытие полной карты внутри нашего сайта
 ============================================================ -->
 <div class="modal-overlay" id="map-viewer-modal">
-  <div class="modal map-viewer-modal">
+  <div class="modal map-viewer-modal map-viewer-modal--fullscreen">
     <button class="modal-close" onclick="closeMapViewer()">✕</button>
     <h2 id="map-viewer-title">КАРТА</h2>
     <div class="map-viewer-frame-wrap" id="map-viewer-frame-wrap">
@@ -1585,20 +1773,28 @@ body::before{
 </div>
 
 <!-- ============================================================
+     WEAPON DETAIL MODAL — разбор сборки оружия на нашем сайте
+============================================================ -->
+<div class="modal-overlay" id="weapon-detail-modal">
+  <div class="modal weapon-detail-modal">
+    <button class="modal-close" onclick="closeWeaponDetail()">✕</button>
+    <h2 id="weapon-detail-title">ОРУЖИЕ</h2>
+    <div id="weapon-detail-body">
+      <!-- Разбор сборки подставляется через JS -->
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
      PAGE: GUIDE (Videos)
 ============================================================ -->
 <div class="page" id="page-guide">
+  <div class="page__scanline"></div>
   <div class="page-header">
-    <h1>// GUIDE //</h1>
+    <h1>🔥 GUIDE</h1>
     <p class="subtitle">Видео с канала WZ.Casper · Новые сверху</p>
   </div>
   <div class="videos-section">
-    <div class="yt-notice">
-      ⚡ Видео подгружаются прямо с YouTube-канала <strong>@WZ.Casper</strong> — список
-      проверяется заново каждый час, новые ролики появляются автоматически.
-      Смотреть можно прямо здесь, без перехода на YouTube.
-    </div>
-
     <div class="video-tabs" id="video-tabs">
       <button class="video-tab active" data-tab="fulls">Видео</button>
       <button class="video-tab" data-tab="shorts">Shorts</button>
@@ -1668,7 +1864,7 @@ body::before{
       <input class="code-digit" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="1" id="d7">
       <input class="code-digit" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="1" id="d8">
     </div>
-    <div class="modal-error" id="auth-error">// НЕВЕРНЫЙ КОД ДОСТУПА //</div>
+    <div class="modal-error" id="auth-error">НЕВЕРНЫЙ КОД ДОСТУПА</div>
     <button class="modal-btn" onclick="checkAuthCode()">АВТОРИЗОВАТЬСЯ</button>
   </div>
 </div>
@@ -1709,7 +1905,7 @@ body::before{
         </div>
         <div class="setting-field">
           <label>Роль / Подзаголовок</label>
-          <input type="text" id="set-role" value="// Call of Duty Guide Blogger //">
+          <input type="text" id="set-role" value="Call of Duty Guide Blogger">
         </div>
       </div>
       <div class="setting-field">
@@ -1763,17 +1959,12 @@ body::before{
     <div class="settings-section">
       <h3>YouTube канал</h3>
       <div class="setting-field">
-        <label>YouTube Channel ID или @handle</label>
+        <label>YouTube Channel @handle</label>
         <input type="text" id="set-yt-channel" value="@WZ.Casper">
       </div>
       <p style="font-family:var(--font-mono);font-size:0.65rem;color:var(--text-dim);margin-top:0.5rem">
-        Для автоматической загрузки видео нужен YouTube Data API v3 ключ. 
-        Без ключа используются тестовые видео.
+        Видео автоматически подгружаются с этого канала через YouTube Data API.
       </p>
-      <div class="setting-field" style="margin-top:0.75rem">
-        <label>YouTube API Key (опционально)</label>
-        <input type="text" id="set-yt-api" placeholder="AIza...">
-      </div>
     </div>
 
     <button class="save-btn" onclick="saveSettings()">💾 СОХРАНИТЬ</button>
@@ -2331,6 +2522,7 @@ function loadSettingsToForm() {
 }
 
 function saveSettings() {
+  const prevChannel = STATE.settings ? STATE.settings.ytChannel : null;
   const s = {
     callsign: document.getElementById('set-callsign').value,
     role: document.getElementById('set-role').value,
@@ -2343,10 +2535,19 @@ function saveSettings() {
     tiktok: document.getElementById('set-tiktok').value,
     telegram: document.getElementById('set-telegram').value,
     ytChannel: document.getElementById('set-yt-channel').value,
-    ytApi: document.getElementById('set-yt-api').value,
   };
   STATE.settings = s;
   localStorage.setItem('casper_settings', JSON.stringify(s));
+
+  // Если канал в настройках поменяли — старые закэшированные
+  // channelId/uploads-плейлист относятся к ПРЕЖНЕМУ каналу и дадут
+  // видео не того блогера. Сбрасываем кэш и сразу подгружаем заново.
+  if (prevChannel !== null && prevChannel !== s.ytChannel) {
+    localStorage.removeItem('casper_yt_channel_id');
+    localStorage.removeItem('casper_yt_uploads_playlist');
+    localStorage.removeItem(VIDEOS_CACHE_KEY);
+    loadVideos(true);
+  }
 
   // Поля callsign/role/desc/donateCard можно менять и через настройки,
   // и через режим "редакт. текст" (contenteditable) прямо на странице.
@@ -2565,7 +2766,7 @@ async function fetchWeaponsFromWzhub() {
 function renderWeapons() {
   const grid = document.getElementById('weapons-grid');
   grid.innerHTML = STATE.weapons.map((w,i) => `
-    <div class="weapon-card" data-index="${i}" onclick="openWeaponSource(${i})">
+    <div class="weapon-card" data-index="${i}" onclick="openWeaponDetail(${i})">
       <div class="weapon-card__thumb-wrap">
         <img src="${w.thumb}" alt="${w.name}" loading="lazy" class="weapon-card__thumb-img"
              onerror="this.style.display='none'">
@@ -2586,12 +2787,104 @@ function renderWeapons() {
   if (STATE.isDragging) enableDraggable();
 }
 
-function openWeaponSource(index) {
-  // Гасим клик сразу после реального drag&drop переноса карточки —
-  // иначе перестановка оружия в редакторе попутно открывала бы ссылку
+// ---- Детальная страница оружия — открывается НА НАШЕМ САЙТЕ ----
+// Денис явно просил не уводить зрителя на wzhub.gg при клике по оружию.
+// Поэтому при клике мы парсим именно страницу ЭТОГО оружия (а не общий
+// список) и показываем разбор сборки в нашей модалке, в нашем стиле.
+async function openWeaponDetail(index) {
   if (isClickSuppressed()) return;
   const w = STATE.weapons[index];
-  if (w && w.url) window.open(w.url, '_blank', 'noopener');
+  if (!w) return;
+
+  document.getElementById('weapon-detail-modal').classList.add('open');
+  const body = document.getElementById('weapon-detail-body');
+  document.getElementById('weapon-detail-title').textContent = w.name;
+  body.innerHTML = `<div class="weapon-detail-loading">Загружаем разбор сборки…</div>`;
+
+  if (!w.url) {
+    body.innerHTML = `<div class="weapon-detail-loading">Подробности по этому оружию пока недоступны.</div>`;
+    return;
+  }
+
+  try {
+    const detail = await fetchWeaponDetail(w.url);
+    body.innerHTML = renderWeaponDetailHtml(w, detail);
+  } catch(e) {
+    console.warn('[Деталь оружия] не удалось загрузить:', e.message || e);
+    body.innerHTML = `
+      <div class="weapon-detail-loading">
+        Не получилось загрузить подробный разбор автоматически.<br>
+        <a class="map-viewer-open-btn" href="${w.url}" target="_blank" rel="noopener" style="margin-top:1rem;display:inline-block">
+          Открыть сборку «${w.name}» на источнике
+        </a>
+      </div>`;
+  }
+}
+
+function closeWeaponDetail() {
+  document.getElementById('weapon-detail-modal').classList.remove('open');
+}
+
+// Парсит конкретную страницу сборки оружия: код сборки, комплектующие
+// (оптика, ствол, рукоятка, магазин, приклад и т.п.), дату обновления.
+async function fetchWeaponDetail(weaponUrl) {
+  const resp = await fetchViaProxyChain(weaponUrl, 8000);
+  if (!resp.ok) throw new Error('weapon detail fetch failed: ' + resp.status);
+  const html = await resp.text();
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const body = doc.querySelector('main') || doc.body;
+
+  // Код сборки — короткая буквенно-цифровая строка вида "A14-34FBS-LIF4B-11"
+  const fullText = body.textContent || '';
+  const codeMatch = fullText.match(/\b[A-Z]\d{2}-[A-Z0-9]{4,6}-[A-Z0-9]{3,6}(-\d{1,2})?\b/);
+  const loadoutCode = codeMatch ? codeMatch[0] : '';
+
+  // Комплектующие — wzhub.gg подписывает каждую деталь категорией
+  // (Optic, Muzzle, Barrel, Underbarrel, Magazine, Stock, Rear Grip...)
+  const partCategories = ['Optic','Muzzle','Barrel','Underbarrel','Magazine','Stock','Rear Grip','Laser','Fire Mods'];
+  const parts = [];
+  partCategories.forEach(cat => {
+    const re = new RegExp('([A-ZÀ-ÿ0-9][\\w .\'"/-]{2,40}?)\\s+' + cat, 'i');
+    const m = fullText.match(re);
+    if (m) parts.push({ category: cat, name: m[1].trim() });
+  });
+
+  // Описание — берём первый достаточно длинный абзац текста страницы,
+  // отбрасывая короткие служебные строки (меню, кнопки и т.п.)
+  let description = '';
+  const paragraphs = Array.from(body.querySelectorAll('p'));
+  for (const p of paragraphs) {
+    const t = p.textContent.replace(/\s+/g,' ').trim();
+    if (t.length > 60 && !/temporarily unavailable/i.test(t)) { description = t; break; }
+  }
+
+  return { loadoutCode, parts, description };
+}
+
+function renderWeaponDetailHtml(w, detail) {
+  const partsHtml = detail.parts.length
+    ? detail.parts.map(p => `
+        <div class="weapon-detail-part">
+          <span class="weapon-detail-part__cat">${p.category}</span>
+          <span class="weapon-detail-part__name">${p.name}</span>
+        </div>`).join('')
+    : `<div class="weapon-detail-loading">Комплектующие для этой сборки не найдены — попробуйте обновить позже.</div>`;
+
+  return `
+    <div class="weapon-detail-hero">
+      <img src="${w.thumb}" alt="${w.name}" onerror="this.style.display='none'">
+      <div>
+        <div class="weapon-card__tier tier-${w.tier.toLowerCase()}">${TIER_LABEL[w.tier] || w.tier}</div>
+        <div class="weapon-detail-name">${w.name}</div>
+        ${detail.loadoutCode ? `<div class="weapon-detail-code">Код сборки: <span>${detail.loadoutCode}</span></div>` : ''}
+      </div>
+    </div>
+    ${detail.description ? `<p class="weapon-detail-desc">${detail.description}</p>` : ''}
+    <div class="weapon-detail-parts">
+      <div class="weapon-detail-parts__title">Комплектующие</div>
+      ${partsHtml}
+    </div>
+  `;
 }
 
 function forceRefreshWeapons() {
@@ -2824,27 +3117,35 @@ function closeMapViewer() {
 // ============================================================
 // YOUTUBE VIDEOS — автоматическая подгрузка с канала @WZ.Casper
 // ============================================================
-// Используем публичный RSS-фид YouTube — он не требует API-ключа
-// и отдаёт корректные CORS-заголовки, поэтому грузится прямо из
-// браузера без прокси. Фид отдаёт до 15 последних видео канала,
-// этого достаточно для актуального списка "новые сверху".
-// Полные видео и Shorts формально не различаются в самом RSS —
-// разделяем их по соотношению сторон превью (см. classifyVideos).
+// Используем официальный YouTube Data API v3 с ключом, который
+// предоставил Денис. Это надёжнее самодельного RSS-парсинга:
+// API отдаёт точную длительность ролика (по ней определяем Shorts:
+// 60 секунд и меньше — это Shorts, длиннее — обычное видео), реальные
+// просмотры и не зависит от CORS-прокси для основных запросов.
+//
+// ВАЖНО ПРО БЕЗОПАСНОСТЬ КЛЮЧА: ключ зашит прямо в этот файл, а файл
+// открыт всему интернету на GitHub — кто угодно может его увидеть
+// через "Просмотр кода страницы". Чтобы чужие люди не могли тратить
+// твою квоту от твоего имени, ограничь ключ в Google Cloud Console:
+// Credentials → выбрать ключ → "Application restrictions" → HTTP
+// referrers → указать твой домен *.github.io/*. Так ключ будет
+// работать только при запросах с твоего сайта.
+const YT_API_KEY = 'AIzaSyBLOdLAetRLLO6O_KDYDD31zyZxLWbfX0A';
 const YT_CHANNEL_HANDLE = '@WZ.Casper';
 const VIDEOS_CACHE_KEY = 'casper_videos_cache';
 const VIDEOS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 час — проверка обновлений
 
-// Запасные демо-карточки — показываются, если фид недоступен
-// (например, нет сети), чтобы страница не была пустой
+// Запасные демо-карточки — показываются, если API недоступен
+// (например, ключ исчерпал суточную квоту), чтобы страница не была пустой
 const DEMO_SHORTS = [
-  {id:'dQw4w9WgXcQ',title:'ТОП-5 позиций на Verdansk для снайпера',date:new Date(Date.now()-3*86400000).toISOString(),type:'short'},
-  {id:'dQw4w9WgXcQ',title:'Как настроить MXR-17 под Ranked — ЛУЧШАЯ сборка',date:new Date(Date.now()-7*86400000).toISOString(),type:'short'},
-  {id:'dQw4w9WgXcQ',title:'Секретный угол на Rebirth — враги его не ждут',date:new Date(Date.now()-5*86400000).toISOString(),type:'short'},
+  {id:'dQw4w9WgXcQ',title:'ТОП-5 позиций на Verdansk для снайпера',date:new Date(Date.now()-3*86400000).toISOString(),type:'short',views:''},
+  {id:'dQw4w9WgXcQ',title:'Как настроить MXR-17 под Ranked — ЛУЧШАЯ сборка',date:new Date(Date.now()-7*86400000).toISOString(),type:'short',views:''},
+  {id:'dQw4w9WgXcQ',title:'Секретный угол на Rebirth — враги его не ждут',date:new Date(Date.now()-5*86400000).toISOString(),type:'short',views:''},
 ];
 const DEMO_FULLS = [
-  {id:'dQw4w9WgXcQ',title:'ПОЛНЫЙ ГАЙД по Verdansk 2026 — Мета, позиции, лут',date:new Date(Date.now()-14*86400000).toISOString(),type:'full'},
-  {id:'dQw4w9WgXcQ',title:'Warzone Black Ops 7 META WEAPONS — Все ТОП сборки',date:new Date(Date.now()-30*86400000).toISOString(),type:'full'},
-  {id:'dQw4w9WgXcQ',title:'RANKED PLAY руководство — как добраться до Иридия',date:new Date(Date.now()-21*86400000).toISOString(),type:'full'},
+  {id:'dQw4w9WgXcQ',title:'ПОЛНЫЙ ГАЙД по Verdansk 2026 — Мета, позиции, лут',date:new Date(Date.now()-14*86400000).toISOString(),type:'full',views:''},
+  {id:'dQw4w9WgXcQ',title:'Warzone Black Ops 7 META WEAPONS — Все ТОП сборки',date:new Date(Date.now()-30*86400000).toISOString(),type:'full',views:''},
+  {id:'dQw4w9WgXcQ',title:'RANKED PLAY руководство — как добраться до Иридия',date:new Date(Date.now()-21*86400000).toISOString(),type:'full',views:''},
 ];
 
 function initVideos() {
@@ -2878,81 +3179,88 @@ async function loadVideos(forceRefresh) {
   }
 
   try {
-    const items = await fetchYouTubeRSS(YT_CHANNEL_HANDLE);
-    if (items && items.length) {
-      const { shorts, fulls } = classifyVideos(items);
+    const handle = (STATE.settings && STATE.settings.ytChannel) || YT_CHANNEL_HANDLE;
+    const { shorts, fulls } = await fetchYouTubeViaDataApi(handle);
+    if ((shorts && shorts.length) || (fulls && fulls.length)) {
       localStorage.setItem(VIDEOS_CACHE_KEY, JSON.stringify({ ts: Date.now(), shorts, fulls }));
       renderVideos(shorts, fulls);
       return;
     }
   } catch(e) {
-    console.warn('Не удалось загрузить RSS-фид YouTube, показываем демо-видео', e);
+    console.warn('[YouTube API] не удалось загрузить видео, показываем демо-видео:', e.message || e);
   }
 
   localStorage.setItem(VIDEOS_CACHE_KEY, JSON.stringify({ ts: Date.now(), shorts: DEMO_SHORTS, fulls: DEMO_FULLS }));
   renderVideos(DEMO_SHORTS, DEMO_FULLS);
 }
 
-async function fetchYouTubeRSS(handle) {
-  // Шаг 1: получаем channelId по @handle (RSS-фид требует именно ID,
-  // а не @handle), через страницу канала.
-  let channelId = localStorage.getItem('casper_yt_channel_id');
-  if (!channelId) {
-    const resp = await fetchViaProxyChain(`https://www.youtube.com/${handle}`, 8000);
-    const html = await resp.text();
-    const match = html.match(/"channelId":"(UC[0-9A-Za-z_-]{22})"/);
-    if (!match) throw new Error('channelId не найден');
-    channelId = match[1];
-    localStorage.setItem('casper_yt_channel_id', channelId);
-  }
-
-  // Шаг 2: тянем публичный RSS-фид (отдаёт корректный CORS, без прокси)
-  const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
-  const resp = await fetchWithTimeout(rssUrl, 8000);
-  if (!resp.ok) throw new Error('RSS fetch failed: ' + resp.status);
-  const xmlText = await resp.text();
-  const doc = new DOMParser().parseFromString(xmlText, 'text/xml');
-
-  const entries = Array.from(doc.querySelectorAll('entry'));
-  const YT_NS = 'http://www.youtube.com/xml/schemas/2015';
-  return entries.map(entry => {
-    // yt:videoId живёт в XML-namespace — обычный querySelector('videoId')
-    // его не находит (тег на самом деле "yt:videoId" с префиксом),
-    // поэтому используем namespace-aware метод как основной способ.
-    let videoId = '';
-    const nsMatches = entry.getElementsByTagNameNS(YT_NS, 'videoId');
-    if (nsMatches.length) {
-      videoId = nsMatches[0].textContent;
-    } else {
-      // Запасной путь: достаём id из ссылки вида .../watch?v=XXXX,
-      // явно беря именно canonical-ссылку (rel="alternate"), а не
-      // первую попавшуюся <link>, которых в записи может быть несколько.
-      const altLink = entry.querySelector('link[rel="alternate"]') || entry.querySelector('link');
-      const href = altLink ? (altLink.getAttribute('href') || '') : '';
-      const vMatch = href.match(/v=([^&]+)/);
-      videoId = vMatch ? vMatch[1] : '';
-    }
-    const title = entry.querySelector('title')?.textContent || '';
-    const published = entry.querySelector('published')?.textContent || new Date().toISOString();
-    return { id: videoId, title, date: published };
-  }).filter(v => v.id);
+// Конвертирует ISO 8601 длительность YouTube ("PT1M32S") в секунды
+function parseIsoDuration(iso) {
+  const m = (iso || '').match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!m) return 0;
+  const h = parseInt(m[1] || '0', 10);
+  const min = parseInt(m[2] || '0', 10);
+  const s = parseInt(m[3] || '0', 10);
+  return h * 3600 + min * 60 + s;
 }
 
-// Shorts на YouTube почти всегда имеют вертикальное превью (9:16).
-// RSS не сообщает это напрямую, поэтому проверяем фактические
-// пропорции превью-картинки в момент рендера (см. videoCard) —
-// здесь же делаем первичную грубую сортировку по заголовку
-// (часто содержит "#shorts"), а точную проверку (по пропорциям
-// изображения) — асинхронно после первого рендера.
-function classifyVideos(items) {
+function formatViews(n) {
+  n = parseInt(n, 10) || 0;
+  if (n >= 1000000) return (n / 1000000).toFixed(1).replace('.0','') + 'M';
+  if (n >= 1000) return (n / 1000).toFixed(1).replace('.0','') + 'K';
+  return String(n);
+}
+
+async function fetchYouTubeViaDataApi(handle) {
+  // Шаг 1: узнаём channelId и uploads-плейлист по @handle.
+  // forHandle — официальный параметр API именно для @handle-адресов.
+  let channelId = localStorage.getItem('casper_yt_channel_id');
+  let uploadsPlaylistId = localStorage.getItem('casper_yt_uploads_playlist');
+
+  if (!channelId || !uploadsPlaylistId) {
+    const channelsUrl = `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&forHandle=${encodeURIComponent(handle.replace(/^@/,''))}&key=${YT_API_KEY}`;
+    const resp = await fetchWithTimeout(channelsUrl, 8000);
+    const data = await resp.json();
+    if (data.error) throw new Error('YouTube API: ' + data.error.message);
+    const item = data.items && data.items[0];
+    if (!item) throw new Error('Канал не найден по handle ' + handle);
+    channelId = item.id;
+    uploadsPlaylistId = item.contentDetails.relatedPlaylists.uploads;
+    localStorage.setItem('casper_yt_channel_id', channelId);
+    localStorage.setItem('casper_yt_uploads_playlist', uploadsPlaylistId);
+  }
+
+  // Шаг 2: последние видео из плейлиста "все загрузки канала"
+  const playlistUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=25&playlistId=${uploadsPlaylistId}&key=${YT_API_KEY}`;
+  const plResp = await fetchWithTimeout(playlistUrl, 8000);
+  const plData = await plResp.json();
+  if (plData.error) throw new Error('YouTube API: ' + plData.error.message);
+  const videoIds = (plData.items || [])
+    .map(it => it.snippet?.resourceId?.videoId)
+    .filter(Boolean);
+  if (!videoIds.length) return { shorts: [], fulls: [] };
+
+  // Шаг 3: точная длительность и просмотры — нужны отдельным запросом
+  // к videos.list (playlistItems их не отдаёт)
+  const videosUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,statistics,snippet&id=${videoIds.join(',')}&key=${YT_API_KEY}`;
+  const vResp = await fetchWithTimeout(videosUrl, 8000);
+  const vData = await vResp.json();
+  if (vData.error) throw new Error('YouTube API: ' + vData.error.message);
+
   const shorts = [], fulls = [];
-  items.forEach(v => {
-    const isShort = /#shorts?\b/i.test(v.title);
-    v.type = isShort ? 'short' : 'full';
-    (isShort ? shorts : fulls).push(v);
+  (vData.items || []).forEach(v => {
+    const seconds = parseIsoDuration(v.contentDetails.duration);
+    const entry = {
+      id: v.id,
+      title: v.snippet.title,
+      date: v.snippet.publishedAt,
+      views: formatViews(v.statistics?.viewCount),
+      type: seconds > 0 && seconds <= 60 ? 'short' : 'full'
+    };
+    (entry.type === 'short' ? shorts : fulls).push(entry);
   });
-  // Новые сверху — RSS уже отдаёт по дате публикации, но сортируем
-  // явно, чтобы порядок гарантированно был от новых к старым
+
+  // Новые сверху
   const byDateDesc = (a,b) => new Date(b.date) - new Date(a.date);
   shorts.sort(byDateDesc);
   fulls.sort(byDateDesc);
@@ -2980,6 +3288,7 @@ function videoCard(v) {
       <div class="video-info">
         <div class="video-title">${escapeHtml(v.title)}</div>
         <div class="video-meta">
+          ${v.views ? `<span>👁 ${v.views}</span>` : ''}
           <span>📅 ${timeAgo(v.date)}</span>
         </div>
       </div>
@@ -3114,5 +3423,44 @@ document.addEventListener('click', e => {
     playClick();
   }
 });
+
+// ---- ЗВУК ПРИ НАВЕДЕНИИ (hover) на карточки оружия/видео/карт ----
+// Денис добавит свой звуковой файл в папку "sounds" репозитория на
+// GitHub рядом с index.html — путь ниже ОТНОСИТЕЛЬНЫЙ, поэтому он
+// сработает на любом GitHub Pages адресе без правок кода.
+// Если файла там пока нет — браузер тихо проигнорирует ошибку
+// загрузки, сайт не сломается, просто звука при наведении не будет.
+const HOVER_SOUND_PATH = 'sounds/hover.mp3';
+let hoverAudio = null;
+let lastHoverPlayTs = 0;
+const HOVER_SOUND_THROTTLE_MS = 120; // не даём звуку накладываться при быстром движении мыши по многим карточкам подряд
+
+function playHoverSound() {
+  const now = Date.now();
+  if (now - lastHoverPlayTs < HOVER_SOUND_THROTTLE_MS) return;
+  lastHoverPlayTs = now;
+  try {
+    if (!hoverAudio) {
+      hoverAudio = new Audio(HOVER_SOUND_PATH);
+      hoverAudio.volume = 0.35;
+    }
+    // currentTime=0 позволяет звуку перезапускаться при частом наведении,
+    // а не ждать, пока предыдущее проигрывание полностью закончится
+    hoverAudio.currentTime = 0;
+    hoverAudio.play().catch(() => {}); // файл может быть не добавлен — игнорируем тихо
+  } catch(e) {}
+}
+
+// Наведение мышью (hover) не существует как отдельное DOM-событие для
+// делегирования так же просто, как click — используем mouseenter
+// с делегированием через capture-фазу, чтобы поймать вход в любую
+// карточку без навешивания обработчика на каждую отдельно (карточки
+// пересоздаются при автообновлении, отдельные обработчики были бы
+// утеряны при каждом перерендере).
+document.addEventListener('mouseenter', e => {
+  if (e.target.matches && e.target.matches('.weapon-card, .map-card, .video-card, .social-btn, .video-tab, .nav__links a, .nav__auth-btn')) {
+    playHoverSound();
+  }
+}, true);
 
 </script>
