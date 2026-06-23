@@ -125,7 +125,10 @@ body::before{
   letter-spacing:0.1em;
   text-shadow:var(--glow);
   display:flex;align-items:center;gap:10px;
+  cursor:pointer;
+  transition:opacity var(--transition);
 }
+.nav__logo:hover{opacity:0.8;color:var(--yellow)}
 .nav__logo img{
   width:36px;height:36px;
   border-radius:50%;
@@ -260,8 +263,10 @@ body::before{
   0%{top:-120px}
   100%{top:100%}
 }
-/* Весь реальный контент страницы должен быть выше декоративного фона */
-.page > *{position:relative;z-index:2}
+/* Весь реальный контент страницы должен быть выше декоративного фона,
+   КРОМЕ самой сканирующей полосы — у неё уже задан правильный
+   position:absolute для анимации, и его нельзя перетирать */
+.page > :not(.page__scanline){position:relative;z-index:2}
 
 /* ============================================================
    PAGE: ABOUT / VISUAL CARD
@@ -543,6 +548,9 @@ body::before{
   grid-template-columns:repeat(6, 1fr);
   gap:0.6rem;
 }
+/* На визитке Telegram вынесен в отдельный блок ниже, поэтому здесь
+   остаётся 5 платформ — растягиваем их на ту же общую ширину */
+.socials--5{grid-template-columns:repeat(5, 1fr)}
 .social-btn{
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
   padding:12px 6px;
@@ -572,10 +580,74 @@ body::before{
 .social-btn--twitch{background:#9146FF;box-shadow:0 0 14px rgba(145,70,255,0.3)}
 .social-btn--vk{background:#0077FF;box-shadow:0 0 14px rgba(0,119,255,0.3)}
 .social-btn--tiktok{background:#000000;border-color:#3a3a3a;box-shadow:0 0 14px rgba(255,255,255,0.08)}
-.social-btn--telegram{background:#26A5E4;box-shadow:0 0 14px rgba(38,165,228,0.3)}
 @media(max-width:480px){
-  .socials{grid-template-columns:repeat(3, 1fr)}
+  .socials,.socials--5{grid-template-columns:repeat(3, 1fr)}
   .social-btn{font-size:0.5rem;padding:10px 4px}
+}
+
+/* ============================================================
+   TELEGRAM CTA — отдельный выделенный блок на визитке
+============================================================ */
+.telegram-cta{
+  display:flex;align-items:center;gap:1rem;
+  margin-top:1rem;
+  padding:1rem 1.25rem;
+  background:linear-gradient(135deg, #26A5E4 0%, #1c8cc7 100%);
+  border-radius:10px;
+  position:relative;
+  overflow:hidden;
+  text-decoration:none;
+  transition:transform var(--transition), box-shadow var(--transition);
+  box-shadow:0 4px 20px rgba(38,165,228,0.35);
+}
+.telegram-cta:hover{
+  transform:translateY(-2px);
+  box-shadow:0 8px 28px rgba(38,165,228,0.5);
+}
+.telegram-cta__icon{
+  flex-shrink:0;
+  width:44px;height:44px;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,0.15);
+  border-radius:50%;
+  position:relative;
+  z-index:2;
+}
+.telegram-cta__icon svg{width:26px;height:26px;fill:#fff}
+.telegram-cta__text{
+  display:flex;flex-direction:column;gap:2px;
+  position:relative;z-index:2;
+}
+.telegram-cta__title{
+  font-family:var(--font-display);
+  font-size:0.8rem;
+  font-weight:900;
+  color:#fff;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+}
+.telegram-cta__subtitle{
+  font-family:var(--font-mono);
+  font-size:0.65rem;
+  color:rgba(255,255,255,0.85);
+  letter-spacing:0.15em;
+  text-transform:uppercase;
+}
+/* Пульсирующее кольцо вокруг иконки — привлекает взгляд без
+   агрессивного мерцания всего блока */
+.telegram-cta__pulse{
+  position:absolute;
+  left:1rem;top:50%;
+  width:44px;height:44px;
+  transform:translateY(-50%);
+  border-radius:50%;
+  border:2px solid rgba(255,255,255,0.6);
+  animation:telegramPulse 2s ease-out infinite;
+  pointer-events:none;
+}
+@keyframes telegramPulse{
+  0%{transform:translateY(-50%) scale(1);opacity:0.8}
+  100%{transform:translateY(-50%) scale(1.6);opacity:0}
 }
 
 /* ============================================================
@@ -812,54 +884,94 @@ body::before{
 @keyframes skeletonShimmer{to{background-position-x:-200%}}
 
 /* ============================================================
-   MAP VIEWER MODAL — полная карта открывается на нашем сайте,
-   на весь экран (не маленькое окошко) — карты wzhub.gg сами
-   интерактивные и нуждаются в максимуме пространства
+   MAP FULLSCREEN PAGE — карта на весь экран, целиком на нашем сайте
+   (своё изображение + zoom/pan), без iframe и перехода на wzhub.gg
 ============================================================ */
-.map-viewer-modal{
-  max-width:1100px;
-  width:95%;
-  padding:1.5rem;
-}
-.map-viewer-modal--fullscreen{
-  max-width:100vw;
-  width:100vw;
-  height:100vh;
-  max-height:100vh !important;
-  margin:0;
-  border-radius:0;
-  display:flex;
+.map-fullscreen-page{
+  position:fixed;
+  inset:0;
+  z-index:5000;
+  background:var(--black);
+  display:none;
   flex-direction:column;
-  padding:1.25rem;
+  padding-top:0 !important;
 }
-/* Когда открыт fullscreen-просмотр карты, убираем внешний отступ
-   у затемнённого фона — иначе по краям остаются зазоры до края экрана */
-#map-viewer-modal{padding:0}
-.map-viewer-modal--fullscreen .map-viewer-frame-wrap{
-  flex:1;
-  aspect-ratio:unset; /* во весь экран высота важнее фиксированного соотношения сторон */
+.map-fullscreen-page.active{display:flex}
+.map-fullscreen-page::before,.map-fullscreen-page::after{display:none}
+.map-fullscreen-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:1rem;
+  padding:1rem 1.5rem;
+  border-bottom:1px solid var(--border);
+  background:rgba(13,17,23,0.95);
+  flex-shrink:0;
 }
-.map-viewer-frame-wrap{
-  position:relative;
-  width:100%;
-  aspect-ratio:16/9;
-  background:var(--panel2);
+.map-fullscreen-back{
+  font-family:var(--font-display);
+  font-size:0.65rem;font-weight:700;
+  letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--text-dim);
+  padding:8px 14px;
   border:1px solid var(--border);
-  border-radius:6px;
+  border-radius:4px;
+  transition:all var(--transition);
+  white-space:nowrap;
+}
+.map-fullscreen-back:hover{color:var(--yellow);border-color:var(--yellow)}
+.map-fullscreen-bar h2{
+  font-family:var(--font-display);
+  font-size:0.9rem;font-weight:900;
+  color:var(--yellow);
+  text-shadow:var(--glow);
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+  flex:1;text-align:center;
+}
+.map-fullscreen-controls{display:flex;gap:6px}
+.map-fullscreen-controls button{
+  width:36px;height:36px;
+  border:1px solid var(--border);
+  border-radius:4px;
+  color:var(--yellow);
+  font-size:1.1rem;
+  transition:all var(--transition);
+}
+.map-fullscreen-controls button:hover{background:rgba(245,197,24,0.1);border-color:var(--yellow)}
+.map-fullscreen-wrap{
+  flex:1;
   overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+  cursor:grab;
+  background:
+    radial-gradient(ellipse 60% 60% at 30% 50%, rgba(245,197,24,0.04) 0%, transparent 70%),
+    var(--black);
 }
-.map-viewer-frame-wrap iframe{
-  width:100%;height:100%;border:0;display:block;
+.map-fullscreen-wrap.dragging-map{cursor:grabbing}
+.map-fullscreen-wrap img{
+  max-width:95%;max-height:95%;
+  object-fit:contain;
+  transition:transform 0.15s ease-out;
+  user-select:none;
+  -webkit-user-drag:none;
+  box-shadow:0 8px 40px rgba(0,0,0,0.6);
 }
-.map-viewer-fallback{
-  position:absolute;inset:0;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:1rem;text-align:center;padding:2rem;
+.map-fullscreen-footer{
+  flex-shrink:0;
+  padding:0.75rem 1.5rem;
+  text-align:center;
+  font-family:var(--font-mono);
+  font-size:0.65rem;
+  color:var(--text-dim);
+  border-top:1px solid var(--border);
+  background:rgba(13,17,23,0.95);
 }
-.map-viewer-fallback p{
-  font-family:var(--font-mono);font-size:0.8rem;color:var(--text-dim);
-  max-width:380px;
+.map-fullscreen-footer a{color:var(--yellow)}
+@media(max-width:600px){
+  .map-fullscreen-bar{padding:0.75rem 1rem;flex-wrap:wrap}
+  .map-fullscreen-bar h2{font-size:0.7rem;width:100%;order:-1}
 }
+
 .map-viewer-open-btn{
   display:inline-flex;align-items:center;gap:8px;
   padding:12px 24px;
@@ -879,16 +991,17 @@ body::before{
   width:95%;
 }
 .weapon-detail-hero{
-  display:flex;align-items:center;gap:1.25rem;
-  margin-bottom:1rem;
+  display:flex;flex-direction:column;align-items:center;gap:0.75rem;
+  margin-bottom:1.25rem;
 }
 .weapon-detail-hero img{
-  width:120px;height:80px;
+  width:100%;max-width:420px;height:200px;
   object-fit:contain;
   background:var(--panel2);
-  border-radius:6px;
-  flex-shrink:0;
+  border-radius:8px;
+  border:1px solid var(--border);
 }
+.weapon-detail-hero > div{text-align:center}
 .weapon-detail-name{
   font-family:var(--font-display);
   font-size:1.3rem;font-weight:900;
@@ -979,9 +1092,10 @@ body::before{
   gap:1.5rem;
   margin-bottom:1.5rem;
 }
-/* Shorts — узкие вертикальные карточки (9:16, как в самом приложении) */
+/* Shorts — узкие вертикальные карточки (9:16, как в самом приложении).
+   Денис попросил именно 5 в ряд (не больше) — чтобы превью не сужалось */
 .videos-grid--shorts{
-  grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+  grid-template-columns:repeat(5, 1fr);
 }
 .videos-grid--shorts .video-thumb{aspect-ratio:9/16}
 
@@ -1025,6 +1139,32 @@ body::before{
 }
 .video-badge--short{background:rgba(245,197,24,0.9);color:var(--black);font-weight:700}
 .video-badge--full{background:rgba(255,56,56,0.9);color:var(--white);font-weight:700}
+.video-badge--stream{background:rgba(145,70,255,0.9);color:var(--white);font-weight:700}
+
+/* Кнопка "Показать больше" под каждой вкладкой видео */
+.load-more-wrap{
+  display:flex;justify-content:center;
+  margin-top:0.5rem;margin-bottom:2rem;
+}
+.load-more-btn{
+  display:none; /* показывается через JS, только если есть что догружать */
+  padding:12px 32px;
+  background:transparent;
+  border:1px solid var(--yellow-dim);
+  border-radius:4px;
+  color:var(--yellow);
+  font-family:var(--font-display);
+  font-size:0.7rem;font-weight:700;
+  letter-spacing:0.12em;text-transform:uppercase;
+  transition:all var(--transition);
+}
+.load-more-btn:hover{
+  background:rgba(245,197,24,0.08);
+  border-color:var(--yellow);
+}
+
+/* Ряд соцсетей на странице GUIDE */
+.guide-socials{margin:1.5rem 0 0}
 
 .video-info{padding:1rem}
 .video-title{
@@ -1606,10 +1746,10 @@ body::before{
 
 <!-- NAVIGATION -->
 <nav class="nav">
-  <div class="nav__logo">
+  <a class="nav__logo" href="https://t.me/WZ_Casper" target="_blank" rel="noopener" title="Написать мне в Telegram">
     <img id="nav-avatar" src="" alt="CASPER">
     WZ.CASPER
-  </div>
+  </a>
   <ul class="nav__links" id="nav-links">
     <li><a href="#" data-page="about" class="active">Визитка</a></li>
     <li><a href="#" data-page="weapons">Мета оружие</a></li>
@@ -1646,25 +1786,6 @@ body::before{
         <div class="card__role" id="card-role" data-editable>Call of Duty Guide Blogger</div>
         <p class="card__desc" id="card-desc" data-editable>Call of Duty Гайды каждый день 🔥 Я "Casper" Денис 🤝 Полезный Guide Стример из 🇧🇾 Беларуси 😉</p>
 
-        <div class="stats" id="stats-block">
-          <div class="stat">
-            <div class="stat__label">Тактика</div>
-            <div class="stat__bar"><div class="stat__fill" style="--w:92%"></div></div>
-          </div>
-          <div class="stat">
-            <div class="stat__label">Знание мета</div>
-            <div class="stat__bar"><div class="stat__fill" style="--w:97%"></div></div>
-          </div>
-          <div class="stat">
-            <div class="stat__label">Меткость</div>
-            <div class="stat__bar"><div class="stat__fill" style="--w:88%"></div></div>
-          </div>
-          <div class="stat">
-            <div class="stat__label">Контент</div>
-            <div class="stat__bar"><div class="stat__fill" style="--w:95%"></div></div>
-          </div>
-        </div>
-
         <div class="donate-card" id="donate-card">
           <div class="donate-card__glow"></div>
           <div class="donate-card__header">
@@ -1685,7 +1806,7 @@ body::before{
           <div class="donate-card__sub">Банковская карта · Беларусь</div>
         </div>
 
-        <div class="socials" id="socials-grid">
+        <div class="socials socials--5" id="socials-grid">
           <a class="social-btn social-btn--youtube" href="https://www.youtube.com/@WZ.Casper" target="_blank" id="link-youtube">
             <svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 00-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 00.5 6.2 31.4 31.4 0 000 12a31.4 31.4 0 00.5 5.8A3 3 0 002.6 20c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 002.1-2.1A31.4 31.4 0 0024 12a31.4 31.4 0 00-.5-5.8zm-13.9 9.4V8.4l6.3 3.6-6.3 3.6z"/></svg>
             YouTube
@@ -1706,11 +1827,20 @@ body::before{
             <svg viewBox="0 0 24 24"><path d="M19.6 3.3C18.7 2.3 18.2 1 18.2 0h-3.6v16.4c0 1.4-1.1 2.4-2.4 2.4a2.4 2.4 0 01-2.4-2.4 2.4 2.4 0 012.4-2.4c.3 0 .5 0 .7.1V10a5.8 5.8 0 00-.7 0 5.9 5.9 0 00-5.9 5.9 5.9 5.9 0 005.9 5.9 5.9 5.9 0 005.9-5.9V8.1A10 10 0 0023.9 10V6.5a6.3 6.3 0 01-4.3-3.2z"/></svg>
             TikTok
           </a>
-          <a class="social-btn social-btn--telegram" href="https://t.me/CLUB_WARZONE" target="_blank" id="link-tg">
-            <svg viewBox="0 0 24 24"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm5.9 8.2l-2 9.5c-.1.6-.5.7-1 .5l-2.8-2-1.3 1.3c-.2.2-.4.3-.7.3l.2-3 5.1-4.6c.2-.2 0-.3-.3-.1L6.1 14.1l-2.8-.9c-.6-.2-.6-.6.1-.9l10.9-4.2c.6-.2 1.1.1.9.9l-.3.2z"/></svg>
-            Telegram
-          </a>
         </div>
+
+        <!-- Отдельный выделенный блок Telegram-чата — Денис попросил
+             вынести его из общего ряда соцсетей и оформить заметнее -->
+        <a class="telegram-cta" href="https://t.me/CLUB_WARZONE" target="_blank" id="link-tg" rel="noopener">
+          <span class="telegram-cta__icon">
+            <svg viewBox="0 0 24 24"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm5.9 8.2l-2 9.5c-.1.6-.5.7-1 .5l-2.8-2-1.3 1.3c-.2.2-.4.3-.7.3l.2-3 5.1-4.6c.2-.2 0-.3-.3-.1L6.1 14.1l-2.8-.9c-.6-.2-.6-.6.1-.9l10.9-4.2c.6-.2 1.1.1.9.9l-.3.2z"/></svg>
+          </span>
+          <span class="telegram-cta__text">
+            <span class="telegram-cta__title">НАШ ТЕЛЕГРАМ ЧАТ</span>
+            <span class="telegram-cta__subtitle">ВСТУПАЙ</span>
+          </span>
+          <span class="telegram-cta__pulse"></span>
+        </a>
       </div>
     </div>
   </div>
@@ -1760,15 +1890,24 @@ body::before{
 </div>
 
 <!-- ============================================================
-     MAP VIEWER MODAL — открытие полной карты внутри нашего сайта
+     MAP FULLSCREEN PAGE — карта на весь экран, полностью на нашем сайте
 ============================================================ -->
-<div class="modal-overlay" id="map-viewer-modal">
-  <div class="modal map-viewer-modal map-viewer-modal--fullscreen">
-    <button class="modal-close" onclick="closeMapViewer()">✕</button>
-    <h2 id="map-viewer-title">КАРТА</h2>
-    <div class="map-viewer-frame-wrap" id="map-viewer-frame-wrap">
-      <!-- iframe или fallback подставляется через JS -->
+<div class="page map-fullscreen-page" id="page-map-fullscreen">
+  <div class="map-fullscreen-bar">
+    <button class="map-fullscreen-back" onclick="closeMapViewer()">← Назад к картам</button>
+    <h2 id="map-fullscreen-title">КАРТА</h2>
+    <div class="map-fullscreen-controls">
+      <button onclick="mapZoomOut()" title="Уменьшить">−</button>
+      <button onclick="mapZoomReset()" title="Сбросить масштаб">⤢</button>
+      <button onclick="mapZoomIn()" title="Увеличить">+</button>
     </div>
+  </div>
+  <div class="map-fullscreen-wrap" id="map-fullscreen-wrap">
+    <img id="map-fullscreen-img" src="" alt="Карта">
+  </div>
+  <div class="map-fullscreen-footer">
+    Источник данных карты:
+    <a id="map-fullscreen-source-link" href="#" target="_blank" rel="noopener">wzhub.gg</a>
   </div>
 </div>
 
@@ -1798,11 +1937,15 @@ body::before{
     <div class="video-tabs" id="video-tabs">
       <button class="video-tab active" data-tab="fulls">Видео</button>
       <button class="video-tab" data-tab="shorts">Shorts</button>
+      <button class="video-tab" data-tab="streams">Стримы</button>
     </div>
 
     <div class="video-tab-panel active" id="tab-fulls">
       <div class="videos-grid" id="fulls-grid">
         <!-- Injected by JS -->
+      </div>
+      <div class="load-more-wrap">
+        <button class="load-more-btn" id="fulls-load-more" onclick="loadMoreVideos('fulls')">Показать больше</button>
       </div>
     </div>
 
@@ -1810,9 +1953,46 @@ body::before{
       <div class="videos-grid videos-grid--shorts" id="shorts-grid">
         <!-- Injected by JS -->
       </div>
+      <div class="load-more-wrap">
+        <button class="load-more-btn" id="shorts-load-more" onclick="loadMoreVideos('shorts')">Показать больше</button>
+      </div>
     </div>
 
-    <div style="text-align:center;margin-top:2rem">
+    <div class="video-tab-panel" id="tab-streams">
+      <div class="videos-grid" id="streams-grid">
+        <!-- Injected by JS -->
+      </div>
+      <div class="load-more-wrap">
+        <button class="load-more-btn" id="streams-load-more" onclick="loadMoreVideos('streams')">Показать больше</button>
+      </div>
+    </div>
+
+    <!-- Ряд соцсетей внизу страницы GUIDE — все площадки кроме Telegram-чата
+         (он отдельным выделенным блоком только на визитке) -->
+    <div class="socials socials--5 guide-socials">
+      <a class="social-btn social-btn--youtube" href="https://www.youtube.com/@WZ.Casper" target="_blank">
+        <svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 00-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 00.5 6.2 31.4 31.4 0 000 12a31.4 31.4 0 00.5 5.8A3 3 0 002.6 20c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 002.1-2.1A31.4 31.4 0 0024 12a31.4 31.4 0 00-.5-5.8zm-13.9 9.4V8.4l6.3 3.6-6.3 3.6z"/></svg>
+        YouTube
+      </a>
+      <a class="social-btn social-btn--kick" href="https://kick.com/wz-casper" target="_blank">
+        <svg viewBox="0 0 24 24"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm0 22C6.5 22 2 17.5 2 12S6.5 2 12 2s10 4.5 10 10-4.5 10-10 10zm-2-6.5V8.5l7 3.5-7 3.5z"/></svg>
+        Kick
+      </a>
+      <a class="social-btn social-btn--twitch" href="https://www.twitch.tv/wz_casper" target="_blank">
+        <svg viewBox="0 0 24 24"><path d="M11.6 6H10v4.5h1.6V6zm4.2 0h-1.6v4.5h1.6V6zM2.1 0L0 5.3V21h5.9v3h3.2l3-3h4.6L22 15.6V0H2.1zm18.2 14.7l-3.5 3.5h-5.7l-3 3v-3H3.7V1.7h16.6v13z"/></svg>
+        Twitch
+      </a>
+      <a class="social-btn social-btn--vk" href="https://live.vkvideo.ru/wz_casper" target="_blank">
+        <svg viewBox="0 0 24 24"><path d="M22 7.1c.1-.5 0-.8-.7-.8H19c-.6 0-.8.3-1 .7 0 0-1.1 2.7-2.6 4.5-.5.5-.7.6-1 .6-.1 0-.4-.1-.4-.7V7.1c0-.6-.2-.8-.7-.8h-3.6c-.4 0-.6.3-.6.6 0 .6.9.7 1 2.4v3.6c0 .8-.1.9-.4.9-.7 0-2.5-2.7-3.5-5.8-.2-.6-.4-.8-1-.8H3.7c-.7 0-.8.3-.8.7 0 .7.7 3.9 3.2 8.1 1.7 2.9 4 4.4 6.2 4.4 1.3 0 1.4-.3 1.4-.8v-1.8c0-.7.1-.8.7-.8.4 0 1 .2 2.6 1.7 1.7 1.7 2 2.5 3 2.5h2.2c.7 0 1-.3.8-1-.2-.6-.9-1.6-1.8-2.7-.5-.6-1.2-1.2-1.4-1.6-.4-.5-.3-.7 0-1.2 0 0 2.5-3.5 2.8-4.7z"/></svg>
+        VK LIVE
+      </a>
+      <a class="social-btn social-btn--tiktok" href="https://www.tiktok.com/@wz.casper" target="_blank">
+        <svg viewBox="0 0 24 24"><path d="M19.6 3.3C18.7 2.3 18.2 1 18.2 0h-3.6v16.4c0 1.4-1.1 2.4-2.4 2.4a2.4 2.4 0 01-2.4-2.4 2.4 2.4 0 012.4-2.4c.3 0 .5 0 .7.1V10a5.8 5.8 0 00-.7 0 5.9 5.9 0 00-5.9 5.9 5.9 5.9 0 005.9 5.9 5.9 5.9 0 005.9-5.9V8.1A10 10 0 0023.9 10V6.5a6.3 6.3 0 01-4.3-3.2z"/></svg>
+        TikTok
+      </a>
+    </div>
+
+    <div style="text-align:center;margin-top:1.5rem">
       <a href="https://www.youtube.com/@WZ.Casper" target="_blank" style="
         display:inline-flex;align-items:center;gap:10px;
         padding:14px 32px;
@@ -2080,6 +2260,7 @@ window.addEventListener('load', () => {
   initVideos();
   initVideoTabs();
   initMapsLibrary();
+  initMapFullscreenDrag();
   initCodeInput();
   restoreAdminSession();
   initHourlyAutoRefresh();
@@ -2586,12 +2767,31 @@ function loadSettings() {
   document.querySelectorAll('[data-editable]').forEach(el => {
     const key = 'casper_text_' + el.id;
     const saved = localStorage.getItem(key);
-    if (saved) el.textContent = saved;
+    if (!saved) return;
+    if (el.id === 'callsign') {
+      // #callsign содержит вложенный <span> с именем "ДЕНИС" — обычный
+      // textContent = saved стёр бы этот span целиком (та же причина
+      // бага, что и в applySettings). Восстанавливаем span после записи.
+      const realnameSpan = document.getElementById('card-realname');
+      el.textContent = saved;
+      if (realnameSpan) el.appendChild(realnameSpan);
+    } else {
+      el.textContent = saved;
+    }
   });
 }
 
 function applySettings(s) {
-  if(s.callsign) document.getElementById('callsign').textContent = s.callsign;
+  if(s.callsign) {
+    // textContent перезаписывал весь элемент целиком, включая вложенный
+    // <span class="card__realname">ДЕНИС</span> — из-за этого имя пропадало
+    // при каждой загрузке настроек. Обновляем только текстовый узел
+    // позывного, не трогая span с именем.
+    const callsignEl = document.getElementById('callsign');
+    const realnameSpan = document.getElementById('card-realname');
+    callsignEl.textContent = s.callsign;
+    if (realnameSpan) callsignEl.appendChild(realnameSpan);
+  }
   if(s.role) document.getElementById('card-role').textContent = s.role;
   if(s.desc) document.getElementById('card-desc').textContent = s.desc;
   if(s.donateCard) document.getElementById('donate-card-number').textContent = s.donateCard;
@@ -2756,9 +2956,16 @@ async function fetchWeaponsFromWzhub() {
     if (!href.includes('/loadouts/')) return;
     const name = node.textContent.replace(/\s+/g,' ').trim();
     if (!name || name.length > 40) return; // отсекаем мусорные/служебные ссылки
-    const img = node.querySelector('img');
-    const thumb = img ? (img.getAttribute('src') || img.getAttribute('data-src') || '') : '';
+
+    // Изображение оружия НЕ вложено в саму ссылку с названием — оно
+    // лежит соседним элементом внутри общей карточки-контейнера.
+    // Поднимаемся по родителям вверх (максимум 5 уровней, чтобы не
+    // улететь во весь документ) и ищем первое изображение внутри —
+    // это надёжнее, чем требовать конкретную вложенность тегов,
+    // которая может незаметно поменяться при любом редизайне wzhub.gg.
+    const thumb = findNearestWeaponImage(node);
     if (!thumb) return; // без фото карточка нам не подходит
+
     weapons.push({
       name,
       type: '',
@@ -2771,6 +2978,22 @@ async function fetchWeaponsFromWzhub() {
   // Берём только актуальные сборки текущего сезона Black Ops 7 (тиры
   // NEW/S/A/B) — без "вне рейтинга", это старое оружие прошлых игр
   return weapons.filter(w => w.tier !== 'C').slice(0, 24);
+}
+
+// Ищет изображение оружия рядом со ссылкой на его страницу — поднимаясь
+// по родительским контейнерам карточки, а не требуя, чтобы <img> было
+// именно внутри самой ссылки с названием (на реальной странице это не так).
+function findNearestWeaponImage(linkNode) {
+  let container = linkNode;
+  for (let level = 0; level < 5 && container; level++) {
+    const img = container.querySelector('img[src*="thumbnail"], img[src*="loadouts"]');
+    if (img) {
+      const src = img.getAttribute('src') || img.getAttribute('data-src');
+      if (src) return src;
+    }
+    container = container.parentElement;
+  }
+  return '';
 }
 
 function renderWeapons() {
@@ -2836,28 +3059,44 @@ function closeWeaponDetail() {
 }
 
 // Парсит конкретную страницу сборки оружия: код сборки, комплектующие
-// (оптика, ствол, рукоятка, магазин, приклад и т.п.), дату обновления.
+// (оптика, ствол, рукоятка, магазин, приклад и т.п.), фото и описание.
 async function fetchWeaponDetail(weaponUrl) {
   const resp = await fetchViaProxyChain(weaponUrl, 8000);
   if (!resp.ok) throw new Error('weapon detail fetch failed: ' + resp.status);
   const html = await resp.text();
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const body = doc.querySelector('main') || doc.body;
+  const fullText = body.textContent || '';
 
   // Код сборки — короткая буквенно-цифровая строка вида "A14-34FBS-LIF4B-11"
-  const fullText = body.textContent || '';
   const codeMatch = fullText.match(/\b[A-Z]\d{2}-[A-Z0-9]{4,6}-[A-Z0-9]{3,6}(-\d{1,2})?\b/);
   const loadoutCode = codeMatch ? codeMatch[0] : '';
 
-  // Комплектующие — wzhub.gg подписывает каждую деталь категорией
-  // (Optic, Muzzle, Barrel, Underbarrel, Magazine, Stock, Rear Grip...)
-  const partCategories = ['Optic','Muzzle','Barrel','Underbarrel','Magazine','Stock','Rear Grip','Laser','Fire Mods'];
+  // ВАЖНО: wzhub.gg на русской версии подписывает каждую деталь сборки
+  // РУССКОЙ категорией, идущей сразу ПОСЛЕ названия самой детали —
+  // например "FANG HOVERPOINT ELO\nОптика". Раньше тут искали английские
+  // названия категорий (Optic, Muzzle...), которых на русской странице
+  // просто не существует — поэтому комплектующие никогда не находились.
+  const partCategories = [
+    'Оптика','Дуло','Ствол','Подствл. планка','Магазин','Приклад',
+    'Задняя рукоять','Лазер','Модификации огня','Конверсионный набор',
+    'Спусковой механизм','Боеприпасы','Затвор','Накладка','Тыльник приклада'
+  ];
   const parts = [];
   partCategories.forEach(cat => {
-    const re = new RegExp('([A-ZÀ-ÿ0-9][\\w .\'"/-]{2,40}?)\\s+' + cat, 'i');
+    // Название детали — это всё, что стоит непосредственно перед
+    // категорией на отдельной "строке" текстового потока страницы
+    const re = new RegExp('([A-ZА-ЯЁ0-9][\\wА-ЯЁа-яё .,\'"/«»\\-]{1,48}?)\\s*' + cat.replace(/\./g,'\\.') + '(?![а-яё])', 'i');
     const m = fullText.match(re);
     if (m) parts.push({ category: cat, name: m[1].trim() });
   });
+
+  // Фото сборки оружия — на странице деталей обычно идёт крупное
+  // изображение отдельно от маленькой иконки в списке
+  const images = Array.from(body.querySelectorAll('img[src*="loadouts"]'))
+    .map(img => img.getAttribute('src') || img.getAttribute('data-src'))
+    .filter(Boolean);
+  const heroImage = images.find(src => !src.includes('thumbnail')) || images[0] || '';
 
   // Описание — берём первый достаточно длинный абзац текста страницы,
   // отбрасывая короткие служебные строки (меню, кнопки и т.п.)
@@ -2868,7 +3107,12 @@ async function fetchWeaponDetail(weaponUrl) {
     if (t.length > 60 && !/temporarily unavailable/i.test(t)) { description = t; break; }
   }
 
-  return { loadoutCode, parts, description };
+  return {
+    loadoutCode,
+    parts,
+    description,
+    heroImage: heroImage ? (heroImage.startsWith('http') ? heroImage : ('https://wzhub.gg' + heroImage)) : ''
+  };
 }
 
 function renderWeaponDetailHtml(w, detail) {
@@ -2880,9 +3124,13 @@ function renderWeaponDetailHtml(w, detail) {
         </div>`).join('')
     : `<div class="weapon-detail-loading">Комплектующие для этой сборки не найдены — попробуйте обновить позже.</div>`;
 
+  // На странице деталей обычно есть крупное фото сборки — оно
+  // нагляднее маленькой иконки из общего списка
+  const heroSrc = detail.heroImage || w.thumb;
+
   return `
     <div class="weapon-detail-hero">
-      <img src="${w.thumb}" alt="${w.name}" onerror="this.style.display='none'">
+      <img src="${heroSrc}" alt="${w.name}" onerror="this.onerror=null;this.src='${w.thumb}'">
       <div>
         <div class="weapon-card__tier tier-${w.tier.toLowerCase()}">${TIER_LABEL[w.tier] || w.tier}</div>
         <div class="weapon-detail-name">${w.name}</div>
@@ -3072,66 +3320,118 @@ function forceRefreshMaps() {
 }
 
 // ---- Просмотр карты на нашем сайте (модалка) ----
+// ---- Просмотр карты НА НАШЕМ САЙТЕ, без перехода на wzhub.gg ----
+// Денис явно попросил: карта должна открываться на нашем сайте, на
+// весь экран, без перехода на сторонний сайт. Встраивание чужой
+// страницы через iframe технически зависит от заголовков самого
+// wzhub.gg (X-Frame-Options/CSP) — это не то, что можно надёжно
+// гарантировать кодом на нашей стороне, и именно от такого варианта
+// Денис отказался. Поэтому карта показывается как полноэкранное
+// изображение (то же превью, что и на карточке) с возможностью
+// зума и панорамирования прямо в браузере — весь опыт просмотра
+// остаётся полностью на нашем домене.
+let mapZoomState = { scale: 1, x: 0, y: 0 };
+
 function openMapViewer(index) {
   const map = STATE.maps[index];
   if (!map) return;
-  document.getElementById('map-viewer-title').textContent = map.name.toUpperCase();
-  const wrap = document.getElementById('map-viewer-frame-wrap');
+  switchPage('map-fullscreen');
+  document.getElementById('map-fullscreen-title').textContent = map.name.toUpperCase();
+  document.getElementById('map-fullscreen-source-link').href = map.url;
 
-  // Пытаемся встроить карту в iframe. Многие сайты (включая wzhub.gg)
-  // запрещают встраивание через X-Frame-Options/CSP — отслеживаем это
-  // и при ошибке загрузки показываем красивый fallback с кнопкой
-  // "открыть в новой вкладке" вместо пустого белого экрана.
-  wrap.innerHTML = `<iframe src="${map.url}" loading="lazy" id="map-iframe"
-      sandbox="allow-scripts allow-same-origin allow-popups"></iframe>`;
-
-  const iframe = document.getElementById('map-iframe');
-
-  // Если через 2.5с после вставки iframe не удаётся прочитать его
-  // contentDocument — это надёжный признак блокировки через
-  // X-Frame-Options/CSP (событие 'load' само по себе ненадёжно:
-  // оно срабатывает даже когда страница внутри фрейма заблокирована,
-  // браузер всё равно считает фрейм "загруженным").
-  setTimeout(() => {
-    let blocked = false;
-    try {
-      // Доступ к contentDocument у cross-origin страницы, заблокированной
-      // X-Frame-Options/CSP, либо бросает исключение, либо возвращает null —
-      // оба случая означаем как "встраивание запрещено".
-      const cdoc = iframe.contentDocument;
-      if (!cdoc) blocked = true;
-    } catch(e) {
-      blocked = true;
-    }
-    if (blocked) {
-      wrap.innerHTML = `
-        <div class="map-viewer-fallback">
-          <div style="font-family:var(--font-mono);font-size:2.5rem;color:var(--yellow);opacity:0.5">🗺</div>
-          <p>Эта карта защищена от встраивания самим источником (wzhub.gg).
-          Откроется в новой вкладке — со всеми точками интереса, лутом и секретами.</p>
-          <a class="map-viewer-open-btn" href="${map.url}" target="_blank" rel="noopener">
-            Открыть карту «${map.name}»
-          </a>
-        </div>`;
-    }
-  }, 2500);
-
-  document.getElementById('map-viewer-modal').classList.add('open');
+  mapZoomState = { scale: 1, x: 0, y: 0 };
+  const img = document.getElementById('map-fullscreen-img');
+  img.src = map.thumb;
+  img.onerror = function() {
+    this.onerror = null;
+    this.src = 'https://api.wzhub.gg/storage/uploads/og-image/og_image.jpg';
+  };
+  applyMapZoomTransform();
 }
 
 function closeMapViewer() {
-  document.getElementById('map-viewer-modal').classList.remove('open');
-  document.getElementById('map-viewer-frame-wrap').innerHTML = '';
+  switchPage('about');
+}
+
+function applyMapZoomTransform() {
+  const img = document.getElementById('map-fullscreen-img');
+  if (!img) return;
+  img.style.transform = `translate(${mapZoomState.x}px, ${mapZoomState.y}px) scale(${mapZoomState.scale})`;
+}
+
+function mapZoomIn() {
+  mapZoomState.scale = Math.min(mapZoomState.scale * 1.3, 5);
+  applyMapZoomTransform();
+}
+function mapZoomOut() {
+  mapZoomState.scale = Math.max(mapZoomState.scale / 1.3, 1);
+  if (mapZoomState.scale === 1) { mapZoomState.x = 0; mapZoomState.y = 0; }
+  applyMapZoomTransform();
+}
+function mapZoomReset() {
+  mapZoomState = { scale: 1, x: 0, y: 0 };
+  applyMapZoomTransform();
+}
+
+// Перетаскивание увеличенной карты мышью
+let mapDragState = null;
+function initMapFullscreenDrag() {
+  const wrap = document.getElementById('map-fullscreen-wrap');
+  if (!wrap) return;
+
+  wrap.addEventListener('mousedown', e => {
+    if (mapZoomState.scale <= 1) return;
+    mapDragState = { startX: e.clientX, startY: e.clientY, origX: mapZoomState.x, origY: mapZoomState.y };
+    wrap.classList.add('dragging-map');
+  });
+  window.addEventListener('mousemove', e => {
+    if (!mapDragState) return;
+    mapZoomState.x = mapDragState.origX + (e.clientX - mapDragState.startX);
+    mapZoomState.y = mapDragState.origY + (e.clientY - mapDragState.startY);
+    applyMapZoomTransform();
+  });
+  window.addEventListener('mouseup', () => {
+    mapDragState = null;
+    wrap.classList.remove('dragging-map');
+  });
+
+  // То же самое для пальца на телефонах/планшетах
+  wrap.addEventListener('touchstart', e => {
+    if (mapZoomState.scale <= 1 || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    mapDragState = { startX: t.clientX, startY: t.clientY, origX: mapZoomState.x, origY: mapZoomState.y };
+  }, { passive: true });
+  wrap.addEventListener('touchmove', e => {
+    if (!mapDragState || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    mapZoomState.x = mapDragState.origX + (t.clientX - mapDragState.startX);
+    mapZoomState.y = mapDragState.origY + (t.clientY - mapDragState.startY);
+    applyMapZoomTransform();
+  }, { passive: true });
+  wrap.addEventListener('touchend', () => { mapDragState = null; });
+
+  // Колесо мыши тоже масштабирует — привычное поведение для карт
+  wrap.addEventListener('wheel', e => {
+    e.preventDefault();
+    if (e.deltaY < 0) mapZoomIn(); else mapZoomOut();
+  }, { passive: false });
 }
 
 // ============================================================
 // YOUTUBE VIDEOS — автоматическая подгрузка с канала @WZ.Casper
 // ============================================================
-// Используем официальный YouTube Data API v3 с ключом, который
-// предоставил Денис. Это надёжнее самодельного RSS-парсинга:
-// API отдаёт точную длительность ролика (по ней определяем Shorts:
-// 60 секунд и меньше — это Shorts, длиннее — обычное видео), реальные
-// просмотры и не зависит от CORS-прокси для основных запросов.
+// ВАЖНО: YouTube Data API v3 официально НЕ умеет отличать Shorts от
+// обычных видео — это подтверждённое ограничение самого API (нет
+// специального поля, есть только эвристика "вертикальное + ≤60 сек",
+// которую Денис прямо просил не использовать). Поэтому видео и Shorts
+// разделяются не угадыванием, а явным парсингом тех же трёх вкладок
+// канала, которые видит сам зритель: /videos, /shorts, /streams.
+// Список ID видео на каждой вкладке достаём из ytInitialData —
+// JSON-объекта, который YouTube сам вставляет в HTML страницы для
+// её же отрисовки (тот же приём, которым пользуется сам браузер,
+// без выполнения JS на нашей стороне). Точные метаданные (заголовок,
+// дата, просмотры) затем подтягиваются официальным Data API одним
+// пакетным запросом — это и быстрее, и не тратит лишнюю квоту.
 //
 // ВАЖНО ПРО БЕЗОПАСНОСТЬ КЛЮЧА: ключ зашит прямо в этот файл, а файл
 // открыт всему интернету на GitHub — кто угодно может его увидеть
@@ -3144,9 +3444,10 @@ const YT_API_KEY = 'AIzaSyBLOdLAetRLLO6O_KDYDD31zyZxLWbfX0A';
 const YT_CHANNEL_HANDLE = '@WZ.Casper';
 const VIDEOS_CACHE_KEY = 'casper_videos_cache';
 const VIDEOS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 час — проверка обновлений
+const VIDEOS_PAGE_SIZE = 20; // карточек на "страницу" перед кнопкой "Показать больше"
 
-// Запасные демо-карточки — показываются, если API недоступен
-// (например, ключ исчерпал суточную квоту), чтобы страница не была пустой
+// Запасные демо-карточки — показываются, если ни парсинг, ни API
+// недоступны, чтобы страница не была пустой
 const DEMO_SHORTS = [
   {id:'dQw4w9WgXcQ',title:'ТОП-5 позиций на Verdansk для снайпера',date:new Date(Date.now()-3*86400000).toISOString(),type:'short',views:''},
   {id:'dQw4w9WgXcQ',title:'Как настроить MXR-17 под Ranked — ЛУЧШАЯ сборка',date:new Date(Date.now()-7*86400000).toISOString(),type:'short',views:''},
@@ -3157,6 +3458,13 @@ const DEMO_FULLS = [
   {id:'dQw4w9WgXcQ',title:'Warzone Black Ops 7 META WEAPONS — Все ТОП сборки',date:new Date(Date.now()-30*86400000).toISOString(),type:'full',views:''},
   {id:'dQw4w9WgXcQ',title:'RANKED PLAY руководство — как добраться до Иридия',date:new Date(Date.now()-21*86400000).toISOString(),type:'full',views:''},
 ];
+const DEMO_STREAMS = [
+  {id:'dQw4w9WgXcQ',title:'СТРИМ: Ranked Play до Иридия — погнали!',date:new Date(Date.now()-2*86400000).toISOString(),type:'stream',views:''},
+];
+
+// Текущая глубина показа для каждой вкладки (для кнопки "Показать больше")
+const videoPageState = { fulls: VIDEOS_PAGE_SIZE, shorts: VIDEOS_PAGE_SIZE, streams: VIDEOS_PAGE_SIZE };
+let videoData = { fulls: [], shorts: [], streams: [] };
 
 function initVideos() {
   renderVideosSkeleton();
@@ -3164,7 +3472,7 @@ function initVideos() {
 }
 
 function renderVideosSkeleton() {
-  ['fulls-grid','shorts-grid'].forEach(id => {
+  ['fulls-grid','shorts-grid','streams-grid'].forEach(id => {
     const grid = document.getElementById(id);
     if (!grid) return;
     grid.innerHTML = Array.from({length:4}).map(() => `
@@ -3181,8 +3489,9 @@ async function loadVideos(forceRefresh) {
   if (!forceRefresh && cacheRaw) {
     try {
       const cache = JSON.parse(cacheRaw);
-      if (Date.now() - cache.ts < VIDEOS_CACHE_TTL_MS && cache.shorts && cache.fulls) {
-        renderVideos(cache.shorts, cache.fulls);
+      if (Date.now() - cache.ts < VIDEOS_CACHE_TTL_MS && cache.fulls) {
+        videoData = { fulls: cache.fulls, shorts: cache.shorts, streams: cache.streams || [] };
+        renderVideos();
         return;
       }
     } catch(e) {}
@@ -3190,28 +3499,40 @@ async function loadVideos(forceRefresh) {
 
   try {
     const handle = (STATE.settings && STATE.settings.ytChannel) || YT_CHANNEL_HANDLE;
-    const { shorts, fulls } = await fetchYouTubeViaDataApi(handle);
-    if ((shorts && shorts.length) || (fulls && fulls.length)) {
-      localStorage.setItem(VIDEOS_CACHE_KEY, JSON.stringify({ ts: Date.now(), shorts, fulls }));
-      renderVideos(shorts, fulls);
+    const [rawFulls, rawShorts, rawStreams] = await Promise.all([
+      fetchChannelTab(handle, 'videos'),
+      fetchChannelTab(handle, 'shorts'),
+      fetchChannelTab(handle, 'streams'),
+    ]);
+
+    // Точные даты/просмотры подтягиваем официальным API одним пакетным
+    // запросом на каждую вкладку — без этого шага у видео не было бы
+    // даты публикации (ytInitialData отдаёт только текст вида "3 дня
+    // назад", не точный ISO-таймстамп для надёжной сортировки).
+    const [fulls, shorts, streams] = await Promise.all([
+      enrichWithDataApi(rawFulls, 'full'),
+      enrichWithDataApi(rawShorts, 'short'),
+      enrichWithDataApi(rawStreams, 'stream'),
+    ]);
+
+    const byDateDesc = (a, b) => new Date(b.date || 0) - new Date(a.date || 0);
+    fulls.sort(byDateDesc);
+    shorts.sort(byDateDesc);
+    streams.sort(byDateDesc);
+
+    if (fulls.length || shorts.length || streams.length) {
+      videoData = { fulls, shorts, streams };
+      localStorage.setItem(VIDEOS_CACHE_KEY, JSON.stringify({ ts: Date.now(), fulls, shorts, streams }));
+      renderVideos();
       return;
     }
   } catch(e) {
-    console.warn('[YouTube API] не удалось загрузить видео, показываем демо-видео:', e.message || e);
+    console.warn('[YouTube] не удалось спарсить вкладки канала, показываем демо-видео:', e.message || e);
   }
 
-  localStorage.setItem(VIDEOS_CACHE_KEY, JSON.stringify({ ts: Date.now(), shorts: DEMO_SHORTS, fulls: DEMO_FULLS }));
-  renderVideos(DEMO_SHORTS, DEMO_FULLS);
-}
-
-// Конвертирует ISO 8601 длительность YouTube ("PT1M32S") в секунды
-function parseIsoDuration(iso) {
-  const m = (iso || '').match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-  if (!m) return 0;
-  const h = parseInt(m[1] || '0', 10);
-  const min = parseInt(m[2] || '0', 10);
-  const s = parseInt(m[3] || '0', 10);
-  return h * 3600 + min * 60 + s;
+  videoData = { fulls: DEMO_FULLS, shorts: DEMO_SHORTS, streams: DEMO_STREAMS };
+  localStorage.setItem(VIDEOS_CACHE_KEY, JSON.stringify({ ts: Date.now(), fulls: DEMO_FULLS, shorts: DEMO_SHORTS, streams: DEMO_STREAMS }));
+  renderVideos();
 }
 
 function formatViews(n) {
@@ -3221,85 +3542,168 @@ function formatViews(n) {
   return String(n);
 }
 
-async function fetchYouTubeViaDataApi(handle) {
-  // Шаг 1: узнаём channelId и uploads-плейлист по @handle.
-  // forHandle — официальный параметр API именно для @handle-адресов.
-  let channelId = localStorage.getItem('casper_yt_channel_id');
-  let uploadsPlaylistId = localStorage.getItem('casper_yt_uploads_playlist');
+// ---- Шаг 1: список ID видео с реальной вкладки канала (/videos, /shorts, /streams) ----
+// Достаём напрямую из ytInitialData — того же JSON, которым сам YouTube
+// отрисовывает страницу. Это даёт ТОЧНОЕ деление по типу контента, без
+// угадывания по длительности, и порядок "новые сверху", как на самом канале.
+async function fetchChannelTab(handle, tab) {
+  const cleanHandle = handle.replace(/^@/, '');
+  const url = `https://www.youtube.com/@${cleanHandle}/${tab}`;
+  const resp = await fetchViaProxyChain(url, 9000);
+  if (!resp.ok) throw new Error(`Вкладка ${tab} недоступна: ${resp.status}`);
+  const html = await resp.text();
 
-  if (!channelId || !uploadsPlaylistId) {
-    const channelsUrl = `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&forHandle=${encodeURIComponent(handle.replace(/^@/,''))}&key=${YT_API_KEY}`;
-    const resp = await fetchWithTimeout(channelsUrl, 8000);
-    const data = await resp.json();
-    if (data.error) throw new Error('YouTube API: ' + data.error.message);
-    const item = data.items && data.items[0];
-    if (!item) throw new Error('Канал не найден по handle ' + handle);
-    channelId = item.id;
-    uploadsPlaylistId = item.contentDetails.relatedPlaylists.uploads;
-    localStorage.setItem('casper_yt_channel_id', channelId);
-    localStorage.setItem('casper_yt_uploads_playlist', uploadsPlaylistId);
-  }
+  const initialData = extractYtInitialData(html);
+  if (!initialData) return [];
 
-  // Шаг 2: последние видео из плейлиста "все загрузки канала"
-  const playlistUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=25&playlistId=${uploadsPlaylistId}&key=${YT_API_KEY}`;
-  const plResp = await fetchWithTimeout(playlistUrl, 8000);
-  const plData = await plResp.json();
-  if (plData.error) throw new Error('YouTube API: ' + plData.error.message);
-  const videoIds = (plData.items || [])
-    .map(it => it.snippet?.resourceId?.videoId)
-    .filter(Boolean);
-  if (!videoIds.length) return { shorts: [], fulls: [] };
-
-  // Шаг 3: точная длительность и просмотры — нужны отдельным запросом
-  // к videos.list (playlistItems их не отдаёт)
-  const videosUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,statistics,snippet&id=${videoIds.join(',')}&key=${YT_API_KEY}`;
-  const vResp = await fetchWithTimeout(videosUrl, 8000);
-  const vData = await vResp.json();
-  if (vData.error) throw new Error('YouTube API: ' + vData.error.message);
-
-  const shorts = [], fulls = [];
-  (vData.items || []).forEach(v => {
-    const seconds = parseIsoDuration(v.contentDetails.duration);
-    const entry = {
-      id: v.id,
-      title: v.snippet.title,
-      date: v.snippet.publishedAt,
-      views: formatViews(v.statistics?.viewCount),
-      type: seconds > 0 && seconds <= 60 ? 'short' : 'full'
-    };
-    (entry.type === 'short' ? shorts : fulls).push(entry);
-  });
-
-  // Новые сверху
-  const byDateDesc = (a,b) => new Date(b.date) - new Date(a.date);
-  shorts.sort(byDateDesc);
-  fulls.sort(byDateDesc);
-  return { shorts, fulls };
+  const items = walkChannelTabItems(initialData, tab);
+  return items;
 }
 
-function renderVideos(shorts, fulls) {
-  document.getElementById('shorts-grid').innerHTML = shorts.map(v => videoCard(v)).join('');
-  document.getElementById('fulls-grid').innerHTML = fulls.map(v => videoCard(v)).join('');
+// Вырезает встроенный JSON-блок "var ytInitialData = {...};" из HTML
+// страницы YouTube — он есть в исходном ответе сервера и не требует
+// выполнения никакого JS, чтобы быть прочитанным.
+function extractYtInitialData(html) {
+  const marker = 'var ytInitialData = ';
+  const start = html.indexOf(marker);
+  if (start === -1) return null;
+  const jsonStart = start + marker.length;
+  // JSON может содержать вложенные { и }, поэтому ищем корректную
+  // границу подсчётом скобок, а не наивным indexOf последней '}'
+  let depth = 0, i = jsonStart, end = -1;
+  for (; i < html.length; i++) {
+    if (html[i] === '{') depth++;
+    else if (html[i] === '}') {
+      depth--;
+      if (depth === 0) { end = i + 1; break; }
+    }
+  }
+  if (end === -1) return null;
+  try {
+    return JSON.parse(html.slice(jsonStart, end));
+  } catch(e) {
+    return null;
+  }
+}
+
+// Проходит по дереву вкладок канала и достаёт видео/Shorts/стримы из
+// нужной вкладки. videoRenderer — обычные видео и стримы (включая
+// прошедшие LIVE), reelItemRenderer — карточки Shorts (другая обёртка).
+function walkChannelTabItems(data, tab) {
+  const results = [];
+  // Рекурсивный обход всего дерева — устойчивее к точным путям, которые
+  // YouTube периодически немного меняет между обновлениями верстки.
+  function walk(node) {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) { node.forEach(walk); return; }
+
+    if (node.videoRenderer) {
+      const v = node.videoRenderer;
+      const id = v.videoId;
+      const title = (v.title?.runs?.[0]?.text) || v.title?.simpleText || '';
+      const isLive = !!(v.badges?.some(b => /live/i.test(b.metadataBadgeRenderer?.style || '')));
+      const viewsText = v.viewCountText?.simpleText || v.shortViewCountText?.simpleText || '';
+      const publishedText = v.publishedTimeText?.simpleText || '';
+      if (id && title) {
+        results.push({ id, title, viewsText, publishedText, isLive });
+      }
+    }
+    if (node.reelItemRenderer) {
+      const r = node.reelItemRenderer;
+      const id = r.videoId;
+      const title = r.headline?.simpleText || (r.headline?.runs?.[0]?.text) || '';
+      const viewsText = r.viewCountText?.simpleText || '';
+      if (id) results.push({ id, title, viewsText, publishedText: '', isLive: false });
+    }
+
+    Object.values(node).forEach(walk);
+  }
+  walk(data);
+  return results;
+}
+
+// ---- Шаг 2: точные метаданные через официальный Data API ----
+// videos.list по списку ID — один пакетный запрос на до 50 ID,
+// возвращает точную дату публикации и просмотры (то, чего не хватает
+// в простом текстовом виде из ytInitialData).
+async function enrichWithDataApi(rawItems, type) {
+  if (!rawItems.length) return [];
+  const ids = rawItems.map(r => r.id).filter(Boolean);
+  const chunks = [];
+  for (let i = 0; i < ids.length; i += 50) chunks.push(ids.slice(i, i + 50));
+
+  const metaById = {};
+  try {
+    for (const chunk of chunks) {
+      const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${chunk.join(',')}&key=${YT_API_KEY}`;
+      const resp = await fetchWithTimeout(url, 8000);
+      const data = await resp.json();
+      if (data.error) throw new Error('YouTube API: ' + data.error.message);
+      (data.items || []).forEach(it => { metaById[it.id] = it; });
+    }
+  } catch(e) {
+    console.warn('[YouTube Data API] не удалось обогатить метаданными, используем то, что нашли в ytInitialData:', e.message || e);
+  }
+
+  return rawItems.map(r => {
+    const meta = metaById[r.id];
+    return {
+      id: r.id,
+      title: (meta?.snippet?.title) || r.title || '',
+      date: meta?.snippet?.publishedAt || null,
+      views: meta?.statistics?.viewCount ? formatViews(meta.statistics.viewCount) : '',
+      publishedText: r.publishedText || '',
+      type
+    };
+  });
+}
+
+function renderVideos() {
+  ['fulls','shorts','streams'].forEach(key => {
+    const grid = document.getElementById(key + '-grid');
+    if (!grid) return;
+    const items = videoData[key] || [];
+    const visible = items.slice(0, videoPageState[key]);
+    grid.innerHTML = visible.map(v => videoCard(v)).join('');
+
+    const moreBtn = document.getElementById(key + '-load-more');
+    if (moreBtn) moreBtn.style.display = items.length > videoPageState[key] ? 'inline-flex' : 'none';
+  });
   // См. комментарий в renderWeapons — то же самое для видео-карточек
   if (STATE.isDragging) enableDraggable();
 }
 
+function loadMoreVideos(key) {
+  videoPageState[key] += VIDEOS_PAGE_SIZE;
+  renderVideos();
+}
+
 function videoCard(v) {
-  const thumb = `https://img.youtube.com/vi/${v.id}/mqdefault.jpg`;
-  const badge = v.type === 'short'
-    ? '<span class="video-badge video-badge--short">SHORT</span>'
-    : '<span class="video-badge video-badge--full">ВИДЕО</span>';
+  // maxresdefault — самое высокое доступное качество превью YouTube
+  // (1080p), как просил Денис. Не для каждого видео оно гарантированно
+  // существует (зависит от того, как канал грузил исходник) — поэтому
+  // ставим запасной вариант пониже, если 1080p-картинка не загрузится.
+  const thumb = `https://img.youtube.com/vi/${v.id}/maxresdefault.jpg`;
+  const thumbFallback = `https://img.youtube.com/vi/${v.id}/hqdefault.jpg`;
+  const badgeMap = {
+    short: '<span class="video-badge video-badge--short">SHORT</span>',
+    stream: '<span class="video-badge video-badge--stream">СТРИМ</span>',
+    full: '<span class="video-badge video-badge--full">ВИДЕО</span>'
+  };
+  const badge = badgeMap[v.type] || badgeMap.full;
+  const dateLabel = v.date ? timeAgo(v.date) : (v.publishedText || '');
   return `
     <div class="video-card" onclick='openVideoPlayer(${JSON.stringify(v.id)}, ${JSON.stringify(v.title)}, ${JSON.stringify(v.type)})'>
       <div class="video-thumb">
-        <img src="${thumb}" alt="${escapeHtml(v.title)}" loading="lazy">
+        <img src="${thumb}" alt="${escapeHtml(v.title)}" loading="lazy"
+             onerror="this.onerror=null;this.src='${thumbFallback}'">
         ${badge}
       </div>
       <div class="video-info">
         <div class="video-title">${escapeHtml(v.title)}</div>
         <div class="video-meta">
           ${v.views ? `<span>👁 ${v.views}</span>` : ''}
-          <span>📅 ${timeAgo(v.date)}</span>
+          ${dateLabel ? `<span>📅 ${dateLabel}</span>` : ''}
         </div>
       </div>
     </div>
@@ -3313,7 +3717,9 @@ function escapeHtml(str) {
 }
 
 function timeAgo(dateStr) {
-  const diff = Date.now() - new Date(dateStr).getTime();
+  const time = new Date(dateStr).getTime();
+  if (isNaN(time)) return '';
+  const diff = Date.now() - time;
   const days = Math.floor(diff / 86400000);
   if (days < 1) return 'Сегодня';
   if (days < 7) return `${days} дн.`;
@@ -3322,6 +3728,9 @@ function timeAgo(dateStr) {
 }
 
 function forceRefreshVideos() {
+  videoPageState.fulls = VIDEOS_PAGE_SIZE;
+  videoPageState.shorts = VIDEOS_PAGE_SIZE;
+  videoPageState.streams = VIDEOS_PAGE_SIZE;
   renderVideosSkeleton();
   loadVideos(true);
   showToast('↻ Проверяем новые видео на канале…');
