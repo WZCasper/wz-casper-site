@@ -1906,8 +1906,8 @@ body::before{
     <img id="map-fullscreen-img" src="" alt="Карта">
   </div>
   <div class="map-fullscreen-footer">
-    Источник данных карты:
-    <a id="map-fullscreen-source-link" href="#" target="_blank" rel="noopener">wzhub.gg</a>
+    Обзорное изображение карты сезона. Полная интерактивная версия с точками интереса —
+    <a id="map-fullscreen-source-link" href="#" target="_blank" rel="noopener">на wzhub.gg</a>
   </div>
 </div>
 
@@ -2147,6 +2147,21 @@ body::before{
       </p>
     </div>
 
+    <div class="settings-section">
+      <h3>Свой CORS-прокси (рекомендуется)</h3>
+      <div class="setting-field">
+        <label>Адрес твоего Cloudflare Worker</label>
+        <input type="text" id="set-own-proxy" placeholder="https://имя-воркера.твой-логин.workers.dev">
+      </div>
+      <p style="font-family:var(--font-mono);font-size:0.65rem;color:var(--text-dim);margin-top:0.5rem">
+        Бесплатные публичные прокси (allorigins, codetabs, corsproxy.io) у некоторых
+        пользователей блокируются антивирусом/блокировщиком рекламы — это известная
+        практика, не баг сайта. Собственный Cloudflare Worker (бесплатно, 5 минут
+        настройки) полностью решает эту проблему навсегда. Если поле пустое — сайт
+        использует только публичные прокси, как сейчас.
+      </p>
+    </div>
+
     <button class="save-btn" onclick="saveSettings()">💾 СОХРАНИТЬ</button>
   </div>
 </div>
@@ -2173,16 +2188,41 @@ body::before{
 // автоматически переходим к следующему. Это не отменяет общий риск
 // бесплатных прокси (могут быть нестабильны), но снижает его кратно,
 // потому что для отказа нужно, чтобы упали ВСЕ сразу.
-const CORS_PROXIES = [
-  url => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
-  // ВНИМАНИЕ: api.codetabs.com НЕ декодирует query string на своей
-  // стороне — encodeURIComponent() здесь даёт "http%3A%2F%2F...",
-  // которое сервер разворачивает в "http://http://..." и отбрасывает
-  // как невалидный адрес (подтверждено официальным issue в репозитории
-  // codetabs). Передаём URL как есть, без кодирования.
-  url => 'https://api.codetabs.com/v1/proxy/?quest=' + url,
-  url => 'https://corsproxy.io/?url=' + encodeURIComponent(url),
-];
+// ВАЖНО — почему публичные прокси иногда массово недоступны:
+// allorigins.win, codetabs.com и corsproxy.io являются известными
+// "обходными" прокси-сервисами, и именно поэтому они официально
+// присутствуют в публичных блок-листах для рекламных
+// блокировщиков/антивирусов/DNS-фильтров — это задокументированная
+// практика (см. issue в hagezi/dns-blocklists про allorigins.win).
+// Если у человека на компьютере/в сети активен любой такой фильтр,
+// ВСЕ три прокси откажут одновременно с ошибкой "Failed to fetch" —
+// это системная блокировка категории, а не сбой конкретного сервиса.
+//
+// Самое надёжное решение — собственный прокси на личном Cloudflare
+// Workers-аккаунте Дениса (бесплатно, 100 000 запросов/день). Он не
+// несёт признаков "публичного обходного сервиса" и не попадает в
+// типовые блок-листы, в отличие от готовых публичных прокси.
+// Если Денис укажет адрес своего воркера в настройках сайта — он
+// автоматически встанет ПЕРВЫМ в очереди, перед публичными прокси.
+function getProxyChain() {
+  const chain = [];
+  const ownWorker = STATE.settings && STATE.settings.ownProxyUrl;
+  if (ownWorker) {
+    // Собственный воркер Дениса принимает целевой URL как query-параметр
+    chain.push(url => ownWorker.replace(/\/$/, '') + '/?url=' + encodeURIComponent(url));
+  }
+  chain.push(
+    url => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
+    // ВНИМАНИЕ: api.codetabs.com НЕ декодирует query string на своей
+    // стороне — encodeURIComponent() здесь даёт "http%3A%2F%2F...",
+    // которое сервер разворачивает в "http://http://..." и отбрасывает
+    // как невалидный адрес (подтверждено официальным issue в репозитории
+    // codetabs). Передаём URL как есть, без кодирования.
+    url => 'https://api.codetabs.com/v1/proxy/?quest=' + url,
+    url => 'https://corsproxy.io/?url=' + encodeURIComponent(url)
+  );
+  return chain;
+}
 
 // ВАЖНО: здесь сознательно НЕ используется AbortController/AbortSignal.
 // Раньше таймаут собирался через controller.signal, и это казалось
@@ -2212,7 +2252,7 @@ function fetchWithTimeout(url, ms) {
 // который нужно получить через прокси.
 async function fetchViaProxyChain(targetUrl, timeoutMs) {
   let lastError = null;
-  for (const buildProxyUrl of CORS_PROXIES) {
+  for (const buildProxyUrl of getProxyChain()) {
     const proxyUrl = buildProxyUrl(targetUrl);
     try {
       const resp = await fetchWithTimeout(proxyUrl, timeoutMs || 8000);
@@ -2710,10 +2750,13 @@ function loadSettingsToForm() {
   if(s.vk) document.getElementById('set-vk').value = s.vk;
   if(s.tiktok) document.getElementById('set-tiktok').value = s.tiktok;
   if(s.telegram) document.getElementById('set-telegram').value = s.telegram;
+  if(s.ytChannel) document.getElementById('set-yt-channel').value = s.ytChannel;
+  if(s.ownProxyUrl) document.getElementById('set-own-proxy').value = s.ownProxyUrl;
 }
 
 function saveSettings() {
   const prevChannel = STATE.settings ? STATE.settings.ytChannel : null;
+  const prevProxy = STATE.settings ? STATE.settings.ownProxyUrl : null;
   const s = {
     callsign: document.getElementById('set-callsign').value,
     role: document.getElementById('set-role').value,
@@ -2726,6 +2769,7 @@ function saveSettings() {
     tiktok: document.getElementById('set-tiktok').value,
     telegram: document.getElementById('set-telegram').value,
     ytChannel: document.getElementById('set-yt-channel').value,
+    ownProxyUrl: document.getElementById('set-own-proxy').value.trim(),
   };
   STATE.settings = s;
   localStorage.setItem('casper_settings', JSON.stringify(s));
@@ -2737,6 +2781,16 @@ function saveSettings() {
     localStorage.removeItem('casper_yt_channel_id');
     localStorage.removeItem('casper_yt_uploads_playlist');
     localStorage.removeItem(VIDEOS_CACHE_KEY);
+    loadVideos(true);
+  }
+
+  // Если адрес собственного прокси поменялся (добавлен/убран/исправлен) —
+  // это напрямую влияет на то, удастся ли спарсить хоть что-то, поэтому
+  // сразу пробуем заново все три источника, не дожидаясь часового кэша.
+  if (prevProxy !== s.ownProxyUrl) {
+    showToast(s.ownProxyUrl ? '↻ Проверяем твой прокси…' : '↻ Возвращаемся на публичные прокси…');
+    loadWeapons(true);
+    loadMaps(true);
     loadVideos(true);
   }
 
@@ -3190,25 +3244,25 @@ const MAPS_FALLBACK = [
     sub: 'Battle Royale — BO7 S1',
     season: 'Новинка',
     url: 'https://wzhub.gg/ru/map/heavens-hollow/br',
-    thumb: 'https://api.wzhub.gg/storage/uploads/og-image/og_image.jpg'
+    thumb: 'https://api.wzhub.gg/storage/uploads/og-image/map_heavens-hollow_br.jpg'
   },
   {
     name: 'Rebirth Island',
     sub: 'Battle Royale — BO7 S2',
     season: 'Текущий сезон',
     url: 'https://wzhub.gg/ru/map/rebirth-island/br',
-    thumb: 'https://api.wzhub.gg/storage/uploads/og-image/og_image.jpg'
+    thumb: 'https://api.wzhub.gg/storage/uploads/og-image/map_rebirth-island_br.jpg'
   },
   {
     name: 'Zona 99',
     sub: 'Battle Royale — BO6',
     season: 'Доступна',
     url: 'https://wzhub.gg/ru/map/area-99/br',
-    thumb: 'https://api.wzhub.gg/storage/uploads/og-image/og_image.jpg'
+    thumb: 'https://api.wzhub.gg/storage/uploads/og-image/map_area-99_br.jpg'
   }
 ];
 
-const MAPS_CACHE_KEY = 'casper_maps_cache';
+const MAPS_CACHE_KEY = 'casper_maps_cache_v2'; // v2: исправлены неверные og:image-заглушки трёх карт
 const MAPS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 час — как просил Денис
 
 function initMapsLibrary() {
@@ -3246,16 +3300,18 @@ async function loadMaps(forceRefresh) {
   try {
     const maps = await fetchMapsFromWzhub();
     if (maps && maps.length) {
+      console.info(`[Карты] спарсено с wzhub.gg: ${maps.length} карт`);
       localStorage.setItem(MAPS_CACHE_KEY, JSON.stringify({ ts: Date.now(), maps }));
       renderMaps(maps);
       return;
     }
   } catch(e) {
-    console.warn('Не удалось спарсить wzhub.gg, используем запасной список карт', e);
+    console.warn('Не удалось спарсить wzhub.gg, используем запасной список карт:', e.message || e);
   }
 
   // Фолбэк — показываем актуальные карты BO7/Warzone 2026, чтобы страница
   // никогда не оставалась пустой даже без доступа к wzhub.gg
+  console.info('[Карты] используется запасной список (MAPS_FALLBACK)');
   localStorage.setItem(MAPS_CACHE_KEY, JSON.stringify({ ts: Date.now(), maps: MAPS_FALLBACK }));
   renderMaps(MAPS_FALLBACK);
 }
@@ -3442,7 +3498,7 @@ function initMapFullscreenDrag() {
 // работать только при запросах с твоего сайта.
 const YT_API_KEY = 'AIzaSyBLOdLAetRLLO6O_KDYDD31zyZxLWbfX0A';
 const YT_CHANNEL_HANDLE = '@WZ.Casper';
-const VIDEOS_CACHE_KEY = 'casper_videos_cache';
+const VIDEOS_CACHE_KEY = 'casper_videos_cache_v2'; // v2: парсинг по реальным вкладкам канала вместо деления по длительности
 const VIDEOS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 час — проверка обновлений
 const VIDEOS_PAGE_SIZE = 20; // карточек на "страницу" перед кнопкой "Показать больше"
 
@@ -3499,21 +3555,47 @@ async function loadVideos(forceRefresh) {
 
   try {
     const handle = (STATE.settings && STATE.settings.ytChannel) || YT_CHANNEL_HANDLE;
-    const [rawFulls, rawShorts, rawStreams] = await Promise.all([
+
+    // ВАЖНО: Promise.all() здесь был настоящей причиной "видео не
+    // парсятся вообще" — если хотя бы ОДНА из трёх вкладок не отдавала
+    // результат (например, у канала нет стримов вообще, или конкретно
+    // эта вкладка наткнулась на временную ошибку прокси), Promise.all
+    // отбрасывал успешные результаты двух других вкладок и валил всё
+    // в общий catch. Promise.allSettled не имеет этой проблемы — каждая
+    // вкладка обрабатывается независимо от исхода соседних.
+    const tabResults = await Promise.allSettled([
       fetchChannelTab(handle, 'videos'),
       fetchChannelTab(handle, 'shorts'),
       fetchChannelTab(handle, 'streams'),
     ]);
 
+    const tabNames = ['videos', 'shorts', 'streams'];
+    tabResults.forEach((r, i) => {
+      if (r.status === 'rejected') {
+        console.warn(`[YouTube] вкладка "${tabNames[i]}" не загрузилась:`, r.reason?.message || r.reason);
+      } else {
+        console.info(`[YouTube] вкладка "${tabNames[i]}": найдено ${r.value.length} элементов`);
+      }
+    });
+
+    const rawFulls = tabResults[0].status === 'fulfilled' ? tabResults[0].value : [];
+    const rawShorts = tabResults[1].status === 'fulfilled' ? tabResults[1].value : [];
+    const rawStreams = tabResults[2].status === 'fulfilled' ? tabResults[2].value : [];
+
     // Точные даты/просмотры подтягиваем официальным API одним пакетным
     // запросом на каждую вкладку — без этого шага у видео не было бы
     // даты публикации (ytInitialData отдаёт только текст вида "3 дня
     // назад", не точный ISO-таймстамп для надёжной сортировки).
-    const [fulls, shorts, streams] = await Promise.all([
+    // Та же защита через allSettled: ошибка обогащения одной вкладки
+    // не должна обрушивать остальные.
+    const enrichResults = await Promise.allSettled([
       enrichWithDataApi(rawFulls, 'full'),
       enrichWithDataApi(rawShorts, 'short'),
       enrichWithDataApi(rawStreams, 'stream'),
     ]);
+    const fulls = enrichResults[0].status === 'fulfilled' ? enrichResults[0].value : rawFulls.map(r => ({...r, type:'full'}));
+    const shorts = enrichResults[1].status === 'fulfilled' ? enrichResults[1].value : rawShorts.map(r => ({...r, type:'short'}));
+    const streams = enrichResults[2].status === 'fulfilled' ? enrichResults[2].value : rawStreams.map(r => ({...r, type:'stream'}));
 
     const byDateDesc = (a, b) => new Date(b.date || 0) - new Date(a.date || 0);
     fulls.sort(byDateDesc);
@@ -3525,6 +3607,8 @@ async function loadVideos(forceRefresh) {
       localStorage.setItem(VIDEOS_CACHE_KEY, JSON.stringify({ ts: Date.now(), fulls, shorts, streams }));
       renderVideos();
       return;
+    } else {
+      console.warn('[YouTube] все три вкладки вернули пустой список — см. предупреждения выше для причины каждой вкладки');
     }
   } catch(e) {
     console.warn('[YouTube] не удалось спарсить вкладки канала, показываем демо-видео:', e.message || e);
@@ -3553,10 +3637,24 @@ async function fetchChannelTab(handle, tab) {
   if (!resp.ok) throw new Error(`Вкладка ${tab} недоступна: ${resp.status}`);
   const html = await resp.text();
 
+  // YouTube иногда отдаёт не настоящую страницу, а "стену согласия"
+  // (cookie consent / проверку на робота) — особенно часто именно
+  // запросам с серверных IP бесплатных CORS-прокси. Внешне это всё
+  // равно HTTP 200 с похожим на страницу HTML, но без реальных видео
+  // внутри. Распознаём это явно, чтобы не путать с "у канала нет видео".
+  if (/consent\.youtube\.com|action="https:\/\/consent\.google\.com|Перед тем как перейти на YouTube/i.test(html)) {
+    throw new Error(`Вкладка ${tab}: YouTube показал стену согласия прокси-серверу вместо реальной страницы`);
+  }
+
   const initialData = extractYtInitialData(html);
-  if (!initialData) return [];
+  if (!initialData) {
+    throw new Error(`Вкладка ${tab}: не нашли ytInitialData в ответе (страница пришла в неожиданном виде, длина ${html.length} символов)`);
+  }
 
   const items = walkChannelTabItems(initialData, tab);
+  if (!items.length) {
+    console.warn(`[YouTube] вкладка ${tab}: ytInitialData разобран, но видео не найдено — возможно, изменилась структура страницы`);
+  }
   return items;
 }
 
